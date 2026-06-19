@@ -53,6 +53,9 @@ export default function ProjectDetailPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-medium text-zinc-900">{project.name}</h1>
+          {project.shortName && (
+            <p className="text-sm text-zinc-400 mt-0.5">Short name: {project.shortName}</p>
+          )}
           <p className="mt-0.5 text-sm text-zinc-400">
             {project.refNumber && `${project.refNumber} · `}
             {project.clientName}

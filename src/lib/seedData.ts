@@ -3,6 +3,7 @@ import { createProject, createProjectWithEnvelopes } from "./firestoreService";
 const SAMPLE_PROJECTS = [
   {
     name: "Infrastructure Development",
+    shortName: "Infrastructure Development",
     refNumber: "TND/2025/001",
     clientName: "Ministry of Works",
     submissionDate: "2025-06-30",
@@ -19,6 +20,7 @@ const SAMPLE_PROJECTS = [
   },
   {
     name: "Consultancy Services",
+    shortName: "Consultancy Services",
     refNumber: "TND/2025/002",
     clientName: "Public Works Department",
     submissionDate: "2025-07-15",

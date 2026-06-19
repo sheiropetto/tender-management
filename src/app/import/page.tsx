@@ -85,6 +85,7 @@ export default function ImportPage() {
         submissionAddress: "",
         budget: "",
         category: "",
+        shortName: "",
         contactPersonName: "",
         contactPersonPhone: "",
         contactPersonEmail: "",

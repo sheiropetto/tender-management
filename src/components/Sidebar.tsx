@@ -15,7 +15,8 @@ import { getProjects, getEnvelopes, type Project, type Envelope } from "@/lib/fi
 interface ChildNode {
   href: string;
   label: string;
-  children?: { href: string; label: string }[];
+  shortName?: string;
+  children?: { href: string; label: string; shortName?: string }[];
 }
 
 export default function Sidebar() {
@@ -58,13 +59,14 @@ export default function Sidebar() {
       return {
         href: `/projects/${p.id}`,
         label: p.name,
+        shortName: p.shortName || p.name,
         children: envs.map((e) => ({
           href: `/envelopes/${e.id}`,
           label: e.title,
         })),
       };
     }
-    return { href: `/projects/${p.id}`, label: p.name };
+    return { href: `/projects/${p.id}`, label: p.name, shortName: p.shortName || p.name };
   });
 
   const toggleExpanded = (label: string) => {
@@ -96,22 +98,29 @@ export default function Sidebar() {
 
         {/* Projects (expandable) */}
         <div>
-          <button
-            onClick={() => toggleExpanded("Projects")}
-            className={`flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-all duration-150 ${
-              expanded.Projects
-                ? "text-zinc-900"
-                : "text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            <FolderKanban className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.5]" />
-            <span className="flex-1 text-left">Projects</span>
-            <ChevronDown
-              className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                expanded.Projects ? "text-zinc-400" : "text-zinc-400 -rotate-90"
+          <div className="flex items-center">
+            <Link
+              href="/projects"
+              className={`flex flex-1 items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-all duration-150 ${
+                pathname === "/projects" || pathname.startsWith("/projects/")
+                  ? "text-zinc-900"
+                  : "text-zinc-500 hover:text-zinc-800"
               }`}
-            />
-          </button>
+            >
+              <FolderKanban className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.5]" />
+              <span className="flex-1 text-left">Projects</span>
+            </Link>
+            <button
+              onClick={() => toggleExpanded("Projects")}
+              className="flex items-center justify-center h-9 w-9 mr-2 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-all"
+            >
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                  expanded.Projects ? "" : "-rotate-90"
+                }`}
+              />
+            </button>
+          </div>
 
           {/* Dynamic project list */}
           {expanded.Projects && (
@@ -139,7 +148,7 @@ export default function Sidebar() {
                             : "text-zinc-500 hover:text-zinc-800"
                         }`}
                       >
-                        <span className="truncate">{child.label}</span>
+                        <span className="truncate">{child.shortName || child.label}</span>
                       </Link>
                     );
                   }

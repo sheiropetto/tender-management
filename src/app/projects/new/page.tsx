@@ -15,6 +15,7 @@ export default function NewProjectPage() {
 
   const [form, setForm] = useState({
     name: "",
+    shortName: "",
     refNumber: "",
     clientName: "",
     submissionDate: "",
@@ -65,6 +66,7 @@ export default function NewProjectPage() {
     try {
       const projectData = {
         name: form.name.trim(),
+        shortName: form.shortName.trim() || form.name.trim(),
         refNumber: form.refNumber.trim(),
         clientName: form.clientName.trim(),
         submissionDate: form.submissionDate,
@@ -121,6 +123,7 @@ export default function NewProjectPage() {
       <div className="mb-6">
         <AIUpload onDataExtracted={(data) => {
           if (data.name) updateForm("name", data.name);
+          if (data.shortName) updateForm("shortName", data.shortName);
           if (data.refNumber) updateForm("refNumber", data.refNumber);
           if (data.clientName) updateForm("clientName", data.clientName);
           if (data.submissionDate) updateForm("submissionDate", data.submissionDate);
@@ -156,6 +159,20 @@ export default function NewProjectPage() {
             placeholder="e.g. Infrastructure Development"
             className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-800 placeholder-zinc-300 focus:border-zinc-400 focus:outline-none transition-colors"
             required
+          />
+        </div>
+
+        {/* Short Name */}
+        <div>
+          <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+            Short Name <span className="text-zinc-300">(displayed in lists)</span>
+          </label>
+          <input
+            type="text"
+            value={form.shortName}
+            onChange={(e) => updateForm("shortName", e.target.value)}
+            placeholder="e.g. UMPSA Residential Colleges"
+            className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-800 placeholder-zinc-300 focus:border-zinc-400 focus:outline-none transition-colors"
           />
         </div>
 

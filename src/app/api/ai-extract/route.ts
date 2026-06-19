@@ -121,6 +121,7 @@ Be EXHAUSTIVE. Do not skip anything.`;
 
 JSON FIELDS TO FILL:
 - "name": The project title
+- "shortName": A SHORT, concise version of the project name (max 5-7 words). This is used for display in lists and sidebar where the full name is too long. Extract or generate a shortened version.
 - "refNumber": The tender reference number (e.g., UKAS(...))
 - "clientName": The organization issuing the tender
 - "submissionDate": The CLOSING/DEADLINE/SUBMISSION date. Format: YYYY-MM-DD.

@@ -6,6 +6,7 @@ import { Sparkles, Loader2, FileText, Upload, CheckCircle2, AlertCircle } from "
 
 interface AIExtractedData {
   name?: string;
+  shortName?: string;
   refNumber?: string;
   clientName?: string;
   submissionDate?: string;

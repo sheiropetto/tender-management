@@ -203,7 +203,7 @@ export default function Dashboard() {
                           <FileText className="h-4 w-4 stroke-[1.5]" />
                         </div>
                         <span className="text-sm font-medium text-zinc-800 leading-snug pt-0.5">
-                          {project.name}
+                          {project.shortName || project.name}
                         </span>
                       </div>
                     </td>

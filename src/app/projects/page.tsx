@@ -115,7 +115,7 @@ export default function ProjectsPage() {
                     <FileText className="h-5 w-5 stroke-[1.5]" />
                   </div>
                 </div>
-                <h3 className="text-sm font-medium text-zinc-800 leading-snug">{project.name}</h3>
+                <h3 className="text-sm font-medium text-zinc-800 leading-snug">{project.shortName || project.name}</h3>
                 {project.refNumber && (
                   <p className="mt-0.5 text-xs text-zinc-400">{project.refNumber}</p>
                 )}
