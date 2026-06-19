@@ -111,11 +111,11 @@ export default function ProjectsPage() {
                 className="block p-5"
               >
                 <div className="mb-4 flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 text-zinc-400">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-400">
                     <FileText className="h-5 w-5 stroke-[1.5]" />
                   </div>
                 </div>
-                <h3 className="text-sm font-medium text-zinc-800">{project.name}</h3>
+                <h3 className="text-sm font-medium text-zinc-800 leading-snug">{project.name}</h3>
                 {project.refNumber && (
                   <p className="mt-0.5 text-xs text-zinc-400">{project.refNumber}</p>
                 )}

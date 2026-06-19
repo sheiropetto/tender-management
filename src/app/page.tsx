@@ -198,11 +198,11 @@ export default function Dashboard() {
                     className="cursor-pointer transition-colors hover:bg-zinc-50"
                   >
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-400">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-400">
                           <FileText className="h-4 w-4 stroke-[1.5]" />
                         </div>
-                        <span className="text-sm font-medium text-zinc-800">
+                        <span className="text-sm font-medium text-zinc-800 leading-snug pt-0.5">
                           {project.name}
                         </span>
                       </div>
