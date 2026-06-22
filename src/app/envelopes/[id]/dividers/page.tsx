@@ -138,7 +138,7 @@ export default function DividersPage() {
                 )}
               </div>
               <div className="divider-section">
-                <p className="divider-text divider-text-envelope">{envelope.title}</p>
+                <p className="divider-text divider-text-envelope">{envelope!.title}</p>
               </div>
             </div>
             <div className="divider-half-bottom">
