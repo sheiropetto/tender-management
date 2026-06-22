@@ -31,7 +31,42 @@ export default function BidSecurityPage() {
       </Link>
       <h1 className="text-xl font-medium text-zinc-900 mb-1">Bid Security & USB Pen Drive</h1>
       <p className="text-sm text-zinc-400 mb-6">{project.shortName || project.name}</p>
-      <p className="text-sm text-zinc-500">Coming soon — half A4 landscape dividers for Bid Security and USB Pen Drive.</p>
+
+      <div className="rounded-xl border border-zinc-200 bg-white p-5">
+        <h3 className="text-sm font-medium text-zinc-800 mb-3">Bid Security</h3>
+        <div className="flex gap-3">
+          <Link
+            href={`/projects/${project.id}/print/bid-security/preview?type=original`}
+            className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors text-center"
+          >
+            Print ORIGINAL
+          </Link>
+          <Link
+            href={`/projects/${project.id}/print/bid-security/preview?type=copy`}
+            className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors text-center"
+          >
+            Print COPY
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-5">
+        <h3 className="text-sm font-medium text-zinc-800 mb-3">USB Pen Drive</h3>
+        <div className="flex gap-3">
+          <Link
+            href={`/projects/${project.id}/print/bid-security/preview?type=original&usb=true`}
+            className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors text-center"
+          >
+            Print ORIGINAL
+          </Link>
+          <Link
+            href={`/projects/${project.id}/print/bid-security/preview?type=copy&usb=true`}
+            className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors text-center"
+          >
+            Print COPY
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

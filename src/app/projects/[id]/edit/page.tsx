@@ -418,7 +418,7 @@ export default function EditProjectPage() {
               type="button"
               onClick={() => setHasEnvelopes(!hasEnvelopes)}
               className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-                hasEnvelopes ? "bg-zinc-900" : "bg-zinc-200"
+                hasEnvelopes ? "bg-zinc-100 text-zinc-800" : "bg-zinc-200 text-zinc-400"
               }`}
             >
               <span
@@ -492,7 +492,7 @@ export default function EditProjectPage() {
           <button
             type="submit"
             disabled={saving || !form.name.trim()}
-            className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-transparent px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin stroke-[1.5]" />

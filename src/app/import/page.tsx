@@ -197,7 +197,7 @@ export default function ImportPage() {
           <button
             onClick={handleSave}
             disabled={saving || !projectName.trim()}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#1a1a1a] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-transparent px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -269,7 +269,7 @@ export default function ImportPage() {
             <br />
             or click to browse
           </p>
-          <button className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1a1a1a] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800">
+          <button className="mt-4 inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-transparent px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50">
             <Upload className="h-4 w-4" />
             Choose File
           </button>
@@ -295,7 +295,7 @@ export default function ImportPage() {
           <button
             onClick={handlePasteParse}
             disabled={!pastedText.trim()}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#1a1a1a] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-3 inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-transparent px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Clipboard className="h-4 w-4" />
             Parse Data

@@ -26,7 +26,7 @@ export default function ExportPage() {
             Generate a numbered TOC with color-coded entries matching your dividers.
           </p>
           <div className="mt-4 flex gap-3">
-            <button className="inline-flex items-center gap-2 rounded-lg bg-[#1a1a1a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800">
+            <button className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-transparent px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50">
               <Eye className="h-4 w-4" />
               Preview TOC
             </button>
@@ -49,7 +49,7 @@ export default function ExportPage() {
             Generate full A4 divider pages with bold borders for each section.
           </p>
           <div className="mt-4 flex gap-3">
-            <button className="inline-flex items-center gap-2 rounded-lg bg-[#1a1a1a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800">
+            <button className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-transparent px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50">
               <Eye className="h-4 w-4" />
               Preview Dividers
             </button>
@@ -74,7 +74,7 @@ export default function ExportPage() {
         </p>
         <Link
           href="/import"
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1a1a1a] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-transparent px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
         >
           Import Data First
         </Link>

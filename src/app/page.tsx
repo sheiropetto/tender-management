@@ -1,47 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Upload,
-  FileDown,
-  LayoutTemplate,
-  Plus,
   FileText,
   Clock,
   Loader2,
   Sparkles,
   CheckCircle2,
+  Star,
 } from "lucide-react";
 import Link from "next/link";
-import { getProjects, type Project } from "@/lib/firestoreService";
+import { getProjects, toggleProjectStar, type Project } from "@/lib/firestoreService";
 import { seedSampleData } from "@/lib/seedData";
-
-const quickActions = [
-  {
-    href: "/import",
-    label: "Import Data",
-    description: "Upload Excel or paste data",
-    icon: Upload,
-  },
-  {
-    href: "/export",
-    label: "Generate TOC",
-    description: "Create table of contents",
-    icon: FileDown,
-  },
-  {
-    href: "/export",
-    label: "Generate Dividers",
-    description: "Create document separators",
-    icon: LayoutTemplate,
-  },
-  {
-    href: "/import",
-    label: "New Project",
-    description: "Start a new tender document",
-    icon: Plus,
-  },
-];
 
 function formatTimeAgo(date: any): string {
   if (!date?.toDate) return "just now";
@@ -76,6 +47,18 @@ export default function Dashboard() {
       setLoading(false);
     }
   }
+
+  const handleToggleStar = useCallback(async (projectId: string, starred: boolean) => {
+    if (!projectId) return;
+    try {
+      await toggleProjectStar(projectId, starred);
+      setProjects(prev => prev.map(p =>
+        p.id === projectId ? { ...p, starred } : p
+      ));
+    } catch (err) {
+      console.error("Failed to toggle star:", err);
+    }
+  }, []);
 
   async function handleSeed() {
     setSeeding(true);
@@ -117,35 +100,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Quick Actions */}
-      <div className="mb-8">
-        <h2 className="mb-3 text-xs font-medium text-zinc-400">
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Link
-                key={action.label}
-                href={action.href}
-                className="group rounded-xl border border-zinc-200 bg-white p-5 transition-all duration-150 hover:bg-zinc-50"
-              >
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 text-zinc-500">
-                  <Icon className="h-5 w-5 stroke-[1.5]" />
-                </div>
-                <h3 className="text-sm font-medium text-zinc-800 group-hover:text-zinc-900">
-                  {action.label}
-                </h3>
-                <p className="mt-0.5 text-sm text-zinc-400">
-                  {action.description}
-                </p>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Seed Success */}
       {seedDone && (
         <div className="mb-6 flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-700">
@@ -158,6 +112,79 @@ export default function Dashboard() {
       {loading && (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-5 w-5 animate-spin text-zinc-300 stroke-[1.5]" />
+        </div>
+      )}
+
+      {/* Starred Projects */}
+      {!loading && projects.filter(p => p.starred).length > 0 && (
+        <div className="mb-8">
+          <div className="mb-3 flex items-center gap-2">
+            <Star className="h-3.5 w-3.5 stroke-[1.5] text-zinc-400" />
+            <h2 className="text-xs font-medium text-zinc-400">
+              Starred Projects
+            </h2>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400 w-10" />
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400">
+                    Project Name
+                  </th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400">
+                    Client
+                  </th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-zinc-400">
+                    Updated
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {projects.filter(p => p.starred).map((project) => (
+                  <tr key={project.id} className="transition-colors hover:bg-zinc-50">
+                    <td className="px-5 py-4">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleToggleStar(project.id!, false); }}
+                        className="text-zinc-600 hover:text-zinc-800 transition-colors p-0.5"
+                        title="Unstar"
+                      >
+                        <Star className="h-4 w-4 stroke-[1.5] fill-zinc-600" />
+                      </button>
+                    </td>
+                    <td
+                      className="px-5 py-4 cursor-pointer"
+                      onClick={() => window.location.href = `/projects/${project.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-400">
+                          <FileText className="h-4 w-4 stroke-[1.5]" />
+                        </div>
+                        <span className="text-sm font-medium text-zinc-800 leading-snug pt-0.5">
+                          {project.shortName || project.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td
+                      className="px-5 py-4 text-sm text-zinc-500 cursor-pointer"
+                      onClick={() => window.location.href = `/projects/${project.id}`}
+                    >
+                      {project.clientName || "—"}
+                    </td>
+                    <td
+                      className="px-5 py-4 text-right cursor-pointer"
+                      onClick={() => window.location.href = `/projects/${project.id}`}
+                    >
+                      <div className="flex items-center justify-end gap-1.5 whitespace-nowrap text-sm text-zinc-400">
+                        <Clock className="h-3.5 w-3.5 stroke-[1.5]" />
+                        {formatTimeAgo(project.updatedAt)}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -179,6 +206,7 @@ export default function Dashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400 w-10" />
                   <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400">
                     Project Name
                   </th>
@@ -197,6 +225,15 @@ export default function Dashboard() {
                     onClick={() => window.location.href = `/projects/${project.id}`}
                     className="cursor-pointer transition-colors hover:bg-zinc-50"
                   >
+                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleToggleStar(project.id!, !project.starred)}
+                        className={`transition-colors p-0.5 ${project.starred ? 'text-zinc-600 hover:text-zinc-800' : 'text-zinc-300 hover:text-zinc-600'}`}
+                        title={project.starred ? "Unstar" : "Star"}
+                      >
+                        <Star className={`h-4 w-4 stroke-[1.5] ${project.starred ? 'fill-zinc-600' : ''}`} />
+                      </button>
+                    </td>
                     <td className="px-5 py-4">
                       <div className="flex items-start gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-400">
@@ -211,7 +248,7 @@ export default function Dashboard() {
                       {project.clientName || "—"}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5 text-sm text-zinc-400">
+                      <div className="flex items-center justify-end gap-1.5 whitespace-nowrap text-sm text-zinc-400">
                         <Clock className="h-3.5 w-3.5 stroke-[1.5]" />
                         {formatTimeAgo(project.updatedAt)}
                       </div>
@@ -239,7 +276,7 @@ export default function Dashboard() {
           <div className="mt-5 flex items-center justify-center gap-3">
             <Link
               href="/import"
-              className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-transparent px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
             >
               <Upload className="h-4 w-4 stroke-[1.5]" />
               Import Data

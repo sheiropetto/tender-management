@@ -118,7 +118,7 @@ function PanelItemRow({ item, depth }: { item: PanelItem; depth: number }) {
     <div
       className={`flex items-center justify-between rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-150 cursor-pointer ${
         item.isSelected
-          ? "bg-zinc-900 text-white"
+          ? "bg-zinc-100 text-zinc-800"
           : "text-zinc-500 hover:bg-white hover:text-zinc-800"
       }`}
       style={{ paddingLeft: `${16 + depth * 14}px` }}

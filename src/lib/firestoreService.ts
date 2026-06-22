@@ -32,6 +32,7 @@ export interface Project {
   status: "draft" | "submitted" | "awarded" | "lost";
   description: string;
   hasEnvelopes: boolean;
+  starred?: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -153,6 +154,13 @@ export async function updateProject(
 
 export async function deleteProject(id: string) {
   await deleteDoc(doc(db, "projects", id));
+}
+
+export async function toggleProjectStar(id: string, starred: boolean) {
+  await updateDoc(doc(db, "projects", id), {
+    starred,
+    updatedAt: Timestamp.now(),
+  });
 }
 
 // ─── Envelopes CRUD ──────────────────────────────────────────────────────

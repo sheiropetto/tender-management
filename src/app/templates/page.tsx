@@ -33,7 +33,7 @@ export default function TemplatesPage() {
             Save time with reusable document templates.
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-lg bg-[#1a1a1a] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800">
+        <button className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-transparent px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50">
           <Plus className="h-4 w-4" />
           New Template
         </button>

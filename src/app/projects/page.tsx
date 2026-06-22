@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, FileText, MoreHorizontal, Loader2, Clock, Pencil, Trash2, FileDown } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Plus, FileText, MoreHorizontal, Loader2, Clock, Pencil, Trash2, FileDown, Star } from "lucide-react";
 import Link from "next/link";
-import { getProjects, deleteProject, type Project } from "@/lib/firestoreService";
+import { getProjects, deleteProject, toggleProjectStar, type Project } from "@/lib/firestoreService";
 import ConfirmModal from "@/components/ConfirmModal";
 
 function formatTimeAgo(date: any): string {
@@ -59,6 +59,18 @@ export default function ProjectsPage() {
     }
   };
 
+  const handleToggleStar = useCallback(async (projectId: string, starred: boolean) => {
+    if (!projectId) return;
+    try {
+      await toggleProjectStar(projectId, starred);
+      setProjects(prev => prev.map(p =>
+        p.id === projectId ? { ...p, starred } : p
+      ));
+    } catch (err) {
+      console.error("Failed to toggle star:", err);
+    }
+  }, []);
+
   return (
     <div className="p-8">
       <div className="mb-6 flex items-center justify-between">
@@ -70,7 +82,7 @@ export default function ProjectsPage() {
         </div>
         <Link
           href="/projects/new"
-          className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+          className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-transparent px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
         >
           <Plus className="h-4 w-4" />
           New Project
@@ -94,7 +106,7 @@ export default function ProjectsPage() {
           </p>
           <Link
             href="/projects/new"
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+            className="mt-4 inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-transparent px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
           >
             <Plus className="h-4 w-4" />
             Create Project
@@ -130,8 +142,22 @@ export default function ProjectsPage() {
                 </div>
               </Link>
 
-              {/* Three-dot menu */}
-              <div data-menu-id={project.id} className="absolute top-3 right-3">
+              {/* Star + Three-dot menu */}
+              <div data-menu-id={project.id} className="absolute top-3 right-3 flex items-center gap-0.5">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleStar(project.id!, !project.starred);
+                  }}
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                    project.starred
+                      ? 'text-zinc-600 hover:text-zinc-800'
+                      : 'text-zinc-200 opacity-0 group-hover:opacity-100 hover:text-zinc-600'
+                  }`}
+                  title={project.starred ? "Unstar" : "Star"}
+                >
+                  <Star className={`h-4 w-4 stroke-[1.5] ${project.starred ? 'fill-zinc-600' : ''}`} />
+                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -143,22 +169,28 @@ export default function ProjectsPage() {
                 </button>
                 {openMenu === project.id && (
                   <div className="absolute right-0 top-10 z-10 w-44 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
-                    <Link
-                      href={`/projects/${project.id}/print`}
-                      onClick={() => setOpenMenu(null)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenu(null);
+                        setTimeout(() => { window.location.href = `/projects/${project.id}/print`; }, 50);
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
                     >
                       <FileDown className="h-4 w-4 stroke-[1.5]" />
                       Print Documents
-                    </Link>
-                    <Link
-                      href={`/projects/${project.id}/edit`}
-                      onClick={() => setOpenMenu(null)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenu(null);
+                        setTimeout(() => { window.location.href = `/projects/${project.id}/edit`; }, 50);
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
                     >
                       <Pencil className="h-4 w-4 stroke-[1.5]" />
                       Edit
-                    </Link>
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

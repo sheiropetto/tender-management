@@ -168,6 +168,9 @@ body {
 }
 
 @media print {
+  body { background: white !important; padding: 0 !important; margin: 0 !important; display: block !important; height: auto !important; }
+  body > div { height: auto !important; }
+  main { height: auto !important; }
   .no-print {
     display: none !important;
   }
@@ -179,9 +182,14 @@ body {
   justify-content: center;
   width: 210mm;
   height: 297mm;
-  page-break-after: always;
+  page-break-before: always;
   background: white;
   box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.divider-page:first-of-type {
+  page-break-before: avoid;
 }
 
 .divider-frame {

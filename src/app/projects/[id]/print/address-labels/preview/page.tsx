@@ -50,9 +50,9 @@ export default function AddressLabelPreviewPage() {
       <style>{`
         @media print {
           aside, [class*="sidebar"], [class*="Sidebar"], nav { display: none !important; }
-          body > div { all: unset !important; display: block !important; width: 100% !important; background: white !important; }
-          body { background: white !important; padding: 0 !important; margin: 0 !important; }
-          main { all: unset !important; display: block !important; width: 100% !important; }
+          body > div { all: unset !important; display: block !important; width: 100% !important; background: white !important; height: auto !important; }
+          body { background: white !important; padding: 0 !important; margin: 0 !important; display: block !important; height: auto !important; }
+          main { all: unset !important; display: block !important; width: 100% !important; height: auto !important; }
           .env-divider-page { display: flex !important; }
           .no-print { display: none !important; }
         }
@@ -61,13 +61,13 @@ export default function AddressLabelPreviewPage() {
       <div className="no-print fixed top-4 right-4 z-50 flex gap-3">
         <button
           onClick={() => window.print()}
-          className="rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 transition-colors"
+          className="rounded-full border border-zinc-300 bg-transparent px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
         >
           Print / Save PDF
         </button>
         <button
           onClick={() => router.back()}
-          className="rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+          className="rounded-full border border-zinc-300 bg-transparent px-5 py-2.5 text-sm font-medium text-zinc-500 hover:bg-zinc-50 transition-colors"
         >
           Back
         </button>
