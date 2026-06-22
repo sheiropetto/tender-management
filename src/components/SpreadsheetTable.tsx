@@ -438,5 +438,3 @@ export default function SpreadsheetTable({
     </div>
   );
 }
-  );
-}
