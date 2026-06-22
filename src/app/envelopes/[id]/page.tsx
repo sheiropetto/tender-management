@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Save, FileDown } from "lucide-react";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { updateEnvelope, type Envelope, type ColumnDef, type SheetRow } from "@/lib/firestoreService";
@@ -107,6 +107,14 @@ export default function EnvelopeDetailPage() {
               {rows.length} row{rows.length !== 1 ? "s" : ""} · {columns.length} column{columns.length !== 1 ? "s" : ""}
             </p>
           </div>
+          <div className="flex items-center gap-3">
+          <Link
+            href={`/envelopes/${envelope.id}/dividers`}
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
+          >
+            <FileDown className="h-4 w-4 stroke-[1.5]" />
+            Generate Dividers
+          </Link>
           <button
             onClick={handleSave}
             disabled={saving || !dirty}
@@ -119,6 +127,7 @@ export default function EnvelopeDetailPage() {
             )}
             {saving ? "Saving..." : dirty ? "Save Changes" : "Saved"}
           </button>
+          </div>
         </div>
       </div>
 

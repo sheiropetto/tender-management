@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, Loader2, FileText, FileDown } from "lucide-react";
 import { getProject, getEnvelopes, type Project, type Envelope } from "@/lib/firestoreService";
 
 export default function ProjectDetailPage() {
@@ -56,19 +56,28 @@ export default function ProjectDetailPage() {
           {project.shortName && (
             <p className="text-sm text-zinc-400 mt-0.5">Short name: {project.shortName}</p>
           )}
-          <p className="mt-0.5 text-sm text-zinc-400">
+          <p className="text-sm text-zinc-400">
             {project.refNumber && `${project.refNumber} · `}
             {project.clientName}
           </p>
         </div>
-        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-          project.status === "awarded" ? "bg-zinc-900 text-white" :
-          project.status === "submitted" ? "bg-zinc-200 text-zinc-700" :
-          project.status === "lost" ? "bg-zinc-100 text-zinc-500" :
-          "bg-zinc-50 text-zinc-400"
-        }`}>
-          {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-        </span>
+        <div className="flex items-start gap-3">
+          <Link
+            href={`/projects/${project.id}/print`}
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
+          >
+            <FileDown className="h-4 w-4 stroke-[1.5]" />
+            Print
+          </Link>
+          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+            project.status === "awarded" ? "bg-zinc-900 text-white" :
+            project.status === "submitted" ? "bg-zinc-200 text-zinc-700" :
+            project.status === "lost" ? "bg-zinc-100 text-zinc-500" :
+            "bg-zinc-50 text-zinc-400"
+          }`}>
+            {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+          </span>
+        </div>
       </div>
 
       {/* Project Info */}

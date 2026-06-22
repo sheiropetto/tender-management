@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, FileText, MoreHorizontal, Loader2, Clock, Pencil, Trash2 } from "lucide-react";
+import { Plus, FileText, MoreHorizontal, Loader2, Clock, Pencil, Trash2, FileDown } from "lucide-react";
 import Link from "next/link";
 import { getProjects, deleteProject, type Project } from "@/lib/firestoreService";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -142,7 +142,15 @@ export default function ProjectsPage() {
                   <MoreHorizontal className="h-4 w-4 stroke-[1.5]" />
                 </button>
                 {openMenu === project.id && (
-                  <div className="absolute right-0 top-10 z-10 w-36 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
+                  <div className="absolute right-0 top-10 z-10 w-44 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
+                    <Link
+                      href={`/projects/${project.id}/print`}
+                      onClick={() => setOpenMenu(null)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+                    >
+                      <FileDown className="h-4 w-4 stroke-[1.5]" />
+                      Print Documents
+                    </Link>
                     <Link
                       href={`/projects/${project.id}/edit`}
                       onClick={() => setOpenMenu(null)}

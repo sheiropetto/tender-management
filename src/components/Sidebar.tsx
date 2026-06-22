@@ -52,21 +52,38 @@ export default function Sidebar() {
     }
   }
 
-  // Build dynamic children for Projects section
-  const projectChildren: ChildNode[] = projects.map((p) => {
-    const envs = envelopesMap[p.id!];
-    if (envs && envs.length > 0) {
-      return {
-        href: `/projects/${p.id}`,
-        label: p.name,
-        shortName: p.shortName || p.name,
-        children: envs.map((e) => ({
-          href: `/envelopes/${e.id}`,
-          label: e.title,
-        })),
-      };
+  // Group projects by year
+  const getProjectYear = (p: Project): string => {
+    if (p.submissionDate && p.submissionDate.length >= 4) {
+      const year = p.submissionDate.slice(0, 4);
+      if (/^\d{4}$/.test(year)) return year;
     }
-    return { href: `/projects/${p.id}`, label: p.name, shortName: p.shortName || p.name };
+    return "No date";
+  };
+
+  const yearGroups: Record<string, ChildNode[]> = {};
+  projects.forEach((p) => {
+    const year = getProjectYear(p);
+    if (!yearGroups[year]) yearGroups[year] = [];
+    const envs = envelopesMap[p.id!];
+    const node: ChildNode = {
+      href: `/projects/${p.id}`,
+      label: p.name,
+      shortName: p.shortName || p.name,
+    };
+    if (envs && envs.length > 0) {
+      node.children = envs.map((e) => ({
+        href: `/envelopes/${e.id}`,
+        label: e.title,
+      }));
+    }
+    yearGroups[year].push(node);
+  });
+
+  const sortedYears = Object.keys(yearGroups).sort((a, b) => {
+    if (a === "No date") return 1;
+    if (b === "No date") return -1;
+    return parseInt(b) - parseInt(a);
   });
 
   const toggleExpanded = (label: string) => {
@@ -122,76 +139,101 @@ export default function Sidebar() {
             </button>
           </div>
 
-          {/* Dynamic project list */}
+          {/* Dynamic project list grouped by year */}
           {expanded.Projects && (
-            <div className="space-y-0.5">
-                {projectChildren.length === 0 && (
-                  <Link
-                    href="/projects/new"
-                    className="flex items-center rounded-full pl-[46px] pr-4 py-2 text-sm text-zinc-400 hover:text-zinc-800 transition-colors"
-                  >
-                    <span className="italic">No projects yet</span>
-                  </Link>
-                )}
-                {projectChildren.map((child) => {
-                  const hasGrandchildren = child.children && child.children.length > 0;
-                  const isChildExpanded = expanded[child.label] ?? true;
-
-                  if (!hasGrandchildren) {
-                    return (
-                      <Link
-                        key={child.label}
-                        href={child.href}
-                        className={`flex items-center rounded-full pl-[46px] pr-4 py-2 text-sm font-medium transition-all duration-150 ${
-                          pathname === child.href.split("?")[0]
-                            ? "text-zinc-800"
-                            : "text-zinc-500 hover:text-zinc-800"
+            <div className="space-y-1">
+              {projects.length === 0 && (
+                <Link
+                  href="/projects/new"
+                  className="flex items-center rounded-full pl-[46px] pr-4 py-2 text-sm text-zinc-400 hover:text-zinc-800 transition-colors"
+                >
+                  <span className="italic">No projects yet</span>
+                </Link>
+              )}
+              {sortedYears.map((year) => {
+                const isYearOpen = expanded[`year_${year}`] ?? true;
+                const yearChildren = yearGroups[year];
+                return (
+                  <div key={year}>
+                    <button
+                      onClick={() => toggleExpanded(`year_${year}`)}
+                      className="flex w-full items-center gap-2 rounded-full pl-[46px] pr-4 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors"
+                    >
+                      <ChevronDown
+                        className={`h-3 w-3 transition-transform duration-200 ${
+                          isYearOpen ? "" : "-rotate-90"
                         }`}
-                      >
-                        <span className="truncate">{child.shortName || child.label}</span>
-                      </Link>
-                    );
-                  }
+                      />
+                      <span>{year}</span>
+                      <span className="text-zinc-300">({yearChildren.length})</span>
+                    </button>
 
-                  return (
-                    <div key={child.label}>
-                      <button
-                        onClick={() => toggleExpanded(child.label)}
-                        className={`flex w-full items-center gap-2 rounded-full pl-[46px] pr-4 py-2 text-sm font-medium transition-all duration-150 ${
-                          isChildExpanded
-                            ? "text-zinc-800"
-                            : "text-zinc-500 hover:text-zinc-800"
-                        }`}
-                      >
-                        <span className="flex-1 text-left truncate">{child.label}</span>
-                        <ChevronDown
-                          className={`h-3 w-3 flex-shrink-0 transition-transform duration-200 ${
-                            isChildExpanded ? "text-zinc-400" : "text-zinc-400 -rotate-90"
-                          }`}
-                        />
-                      </button>
+                    {isYearOpen && (
+                      <div className="space-y-0.5">
+                        {yearChildren.map((child) => {
+                          const hasEnv = child.children && child.children.length > 0;
+                          const isProjOpen = expanded[child.label] ?? true;
 
-                      {isChildExpanded && child.children && (
-                        <div className="space-y-0.5">
-                          {child.children.map((grandchild) => (
-                            <Link
-                              key={grandchild.label}
-                              href={grandchild.href}
-                              className={`flex items-center rounded-full pl-[62px] pr-4 py-1.5 text-sm font-medium transition-all duration-150 ${
-                                pathname === grandchild.href.split("?")[0]
-                                  ? "text-zinc-800"
-                                  : "text-zinc-500 hover:text-zinc-800"
-                              }`}
-                            >
-                              <span className="truncate">{grandchild.label}</span>
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                          if (!hasEnv) {
+                            return (
+                              <Link
+                                key={child.label}
+                                href={child.href}
+                                className={`flex items-center rounded-full pl-[58px] pr-4 py-2 text-sm font-medium transition-all duration-150 ${
+                                  pathname === child.href.split("?")[0]
+                                    ? "text-zinc-800"
+                                    : "text-zinc-500 hover:text-zinc-800"
+                                }`}
+                              >
+                                <span>{child.shortName || child.label}</span>
+                              </Link>
+                            );
+                          }
+
+                          return (
+                            <div key={child.label}>
+                              <button
+                                onClick={() => toggleExpanded(child.label)}
+                                className={`flex w-full items-center gap-2 rounded-full pl-[58px] pr-4 py-2 text-sm font-medium transition-all duration-150 ${
+                                  isProjOpen
+                                    ? "text-zinc-800"
+                                    : "text-zinc-500 hover:text-zinc-800"
+                                }`}
+                              >
+                                <span className="flex-1 text-left">{child.shortName || child.label}</span>
+                                <ChevronDown
+                                  className={`h-3 w-3 flex-shrink-0 transition-transform duration-200 ${
+                                    isProjOpen ? "text-zinc-400" : "text-zinc-400 -rotate-90"
+                                  }`}
+                                />
+                              </button>
+
+                              {isProjOpen && child.children && (
+                                <div className="space-y-0.5">
+                                  {child.children.map((grandchild) => (
+                                    <Link
+                                      key={grandchild.label}
+                                      href={grandchild.href}
+                                      className={`flex items-center rounded-full pl-[70px] pr-4 py-1.5 text-xs transition-all duration-150 ${
+                                        pathname === grandchild.href.split("?")[0]
+                                          ? "text-zinc-800"
+                                          : "text-zinc-500 hover:text-zinc-800"
+                                      }`}
+                                    >
+                                      <span className="leading-snug">{grandchild.label}</span>
+                                    </Link>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 

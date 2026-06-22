@@ -92,6 +92,59 @@ export default function SpreadsheetTable({
     );
   };
 
+  // ─── Paste from Excel/Sheets ──────────────────────────────────────────
+
+  const handlePaste = (e: React.ClipboardEvent, startRowId: string, startColId: string) => {
+    const pasted = e.clipboardData.getData("text");
+    if (!pasted.includes("\t") && !pasted.includes("\n")) return; // Normal paste, let default handle it
+
+    e.preventDefault();
+
+    // Parse tab-separated grid
+    const lines = pasted.split(/\r?\n/).filter((l) => l.trim() !== "" || pasted.includes("\t"));
+    const grid = lines.map((line) => line.split("\t"));
+
+    if (grid.length === 0) return;
+
+    const startRowIndex = rows.findIndex((r) => r.id === startRowId);
+    const startColIndex = columns.findIndex((c) => c.id === startColId);
+    if (startRowIndex === -1 || startColIndex === -1) return;
+
+    const numPasteRows = grid.length;
+    const numPasteCols = Math.max(...grid.map((r) => r.length));
+
+    // Add columns if needed
+    let newCols = [...columns];
+    const neededCols = startColIndex + numPasteCols - columns.length;
+    for (let i = 0; i < neededCols; i++) {
+      const id = genId();
+      newCols.push({ id, label: `Column ${newCols.length + 1}` });
+    }
+
+    // Add rows if needed
+    let newRows = [...rows];
+    const neededRows = startRowIndex + numPasteRows - rows.length;
+    for (let i = 0; i < neededRows; i++) {
+      const cells: Record<string, string> = {};
+      newCols.forEach((c) => (cells[c.id] = ""));
+      newRows.push({ id: genId(), cells });
+    }
+
+    // Fill in pasted data
+    for (let ri = 0; ri < grid.length; ri++) {
+      const rowIdx = startRowIndex + ri;
+      for (let ci = 0; ci < grid[ri].length; ci++) {
+        const colIdx = startColIndex + ci;
+        if (newRows[rowIdx] && newCols[colIdx]) {
+          newRows[rowIdx].cells[newCols[colIdx].id] = grid[ri][ci];
+        }
+      }
+    }
+
+    onColumnsChange(newCols);
+    onRowsChange(newRows);
+  };
+
   // ─── Drag-to-reorder (simple arrow-based) ─────────────────────────────
 
   const moveCol = (index: number, direction: -1 | 1) => {
@@ -184,6 +237,7 @@ export default function SpreadsheetTable({
                   <textarea
                     value={row.cells[col.id] || ""}
                     onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                    onPaste={(e) => handlePaste(e, row.id, col.id)}
                     rows={1}
                     className="w-full resize-none border-0 bg-transparent px-1 py-1.5 text-sm text-zinc-700 outline-none focus:ring-0 placeholder-zinc-300"
                     placeholder="—"
