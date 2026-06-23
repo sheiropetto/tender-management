@@ -28,8 +28,8 @@ export default function TemplatesPage() {
     <div className="p-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-zinc-900">Templates</h1>
+          <p className="mt-1 text-sm text-zinc-500">
             Save time with reusable document templates.
           </p>
         </div>
@@ -43,16 +43,16 @@ export default function TemplatesPage() {
         {templates.map((template) => (
           <div
             key={template.name}
-            className="group cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
+            className="group cursor-pointer rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md"
           >
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
               <LayoutTemplate className="h-5 w-5" />
             </div>
-            <h3 className="font-semibold text-gray-900">{template.name}</h3>
-            <p className="mt-0.5 text-sm text-gray-500">
+            <h3 className="font-semibold text-zinc-900">{template.name}</h3>
+            <p className="mt-0.5 text-sm text-zinc-500">
               {template.description}
             </p>
-            <div className="mt-4 flex items-center gap-4 text-sm text-gray-400">
+            <div className="mt-4 flex items-center gap-4 text-sm text-zinc-400">
               <span>{template.sections} sections</span>
               <span>{template.uses} uses</span>
             </div>

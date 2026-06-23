@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { getProject, type Envelope, type ColumnDef, type SheetRow, type Project } from "@/lib/firestoreService";
+import { getProject, getSettings, type Envelope, type ColumnDef, type SheetRow, type Project } from "@/lib/firestoreService";
 import { Loader2, Printer, Grid3X3, List, ChevronLeft } from "lucide-react";
 
 export default function DividersPage() {
@@ -19,6 +19,7 @@ export default function DividersPage() {
   const [mounted, setMounted] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [borderPx, setBorderPx] = useState(3);
   const portalRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -37,8 +38,13 @@ export default function DividersPage() {
         setRows(data.rows || []);
 
         if (data.projectId) {
-          const proj = await getProject(data.projectId);
+          const [proj, settings] = await Promise.all([
+            getProject(data.projectId),
+            getSettings(),
+          ]);
           if (proj) setProject(proj);
+          const m = (settings.borderThickness || "").match(/(\d+)/);
+          setBorderPx(m ? parseInt(m[1], 10) : 3);
         }
       })
       .catch(console.error)
@@ -117,14 +123,16 @@ export default function DividersPage() {
 
   if (!envelope) return null;
 
-  const refCol = columns[0];
-  const descCol = columns[1];
+  const visibleCols = columns.filter((c) => !c.printHidden);
+  const refCol = visibleCols[0];
+  const descCol = visibleCols[1];
+  const extraCols = visibleCols.slice(2);
 
   // ─── Shared divider page render function ─────────────────────────
   function renderDividerPage(row: SheetRow) {
     return (
       <div className="divider-page" style={viewMode === 'grid' ? { width: '210mm', height: '297mm', margin: 0, pageBreakBefore: 'auto' } : undefined}>
-        <div className="divider-frame">
+        <div className="divider-frame" style={{ borderWidth: borderPx }}>
           <div className="divider-content">
             <div className="divider-half-top">
               <div className="divider-section">
@@ -148,8 +156,10 @@ export default function DividersPage() {
               {descCol && row.cells[descCol.id] && (
                 <p className="divider-text divider-text-value">{row.cells[descCol.id]}</p>
               )}
-              {columns[2] && row.cells[columns[2].id] && (
-                <p className="divider-text divider-text-value">{row.cells[columns[2].id]}</p>
+              {extraCols.map((col) =>
+                row.cells[col.id] ? (
+                  <p key={col.id} className="divider-text divider-text-value">{row.cells[col.id]}</p>
+                ) : null
               )}
             </div>
           </div>

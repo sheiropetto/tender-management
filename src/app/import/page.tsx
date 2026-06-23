@@ -124,13 +124,13 @@ export default function ImportPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleReset}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">Review Data</h1>
+              <h1 className="text-2xl font-bold text-zinc-900">Review Data</h1>
             </div>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-zinc-500">
               {parsedData.rows.length} rows parsed from{" "}
               <span className="font-medium">{parsedData.sheetName}</span>
             </p>
@@ -139,50 +139,50 @@ export default function ImportPage() {
 
         {/* Project Name */}
         <div className="mb-4">
-          <label className="block text-xs font-medium text-gray-500 mb-1">
+          <label className="block text-xs font-medium text-zinc-500 mb-1">
             Project Name
           </label>
           <input
             type="text"
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
-            className="w-full max-w-md rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-gray-400 focus:outline-none"
+            className="w-full max-w-md rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-700 focus:border-zinc-400 focus:outline-none"
             placeholder="Enter project name..."
           />
         </div>
 
         {/* Preview Table */}
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="w-10 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">
+                <tr className="border-b border-zinc-100 bg-zinc-50">
+                  <th className="w-10 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400">
                     #
                   </th>
                   {parsedData.columns.map((col) => (
                     <th
                       key={col}
-                      className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400"
+                      className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-400"
                     >
                       {col}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-zinc-100">
                 {parsedData.rows.map((row, i) => (
-                  <tr key={i} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-3 py-2.5 text-sm text-gray-400">
+                  <tr key={i} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-3 py-2.5 text-sm text-zinc-400">
                       {i + 1}
                     </td>
                     {parsedData.columns.map((col) => (
                       <td
                         key={col}
-                        className="max-w-[200px] truncate px-3 py-2.5 text-sm text-gray-700"
+                        className="max-w-[200px] truncate px-3 py-2.5 text-sm text-zinc-700"
                         title={row[col]}
                       >
-                        {row[col] || <span className="text-gray-300">—</span>}
+                        {row[col] || <span className="text-zinc-300">—</span>}
                       </td>
                     ))}
                   </tr>
@@ -208,7 +208,7 @@ export default function ImportPage() {
           </button>
           <Link
             href="/export"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
           >
             <Eye className="h-4 w-4" />
             Preview TOC & Dividers
@@ -223,7 +223,7 @@ export default function ImportPage() {
           </div>
         )}
         {success && (
-          <div className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
             <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
             {success}
           </div>
@@ -237,8 +237,8 @@ export default function ImportPage() {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Import Data</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-zinc-900">Import Data</h1>
+        <p className="mt-1 text-sm text-zinc-500">
           Upload an Excel file or paste tabular data to create your tender document.
         </p>
       </div>
@@ -249,22 +249,22 @@ export default function ImportPage() {
           {...getRootProps()}
           className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-all ${
             isDragActive
-              ? "border-[#1a1a1a] bg-gray-50"
-              : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50"
+              ? "border-[#1a1a1a] bg-zinc-50"
+              : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50/50"
           }`}
         >
           <input {...getInputProps()} />
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100">
             {loading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+              <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
             ) : (
-              <FileSpreadsheet className="h-6 w-6 text-gray-500" />
+              <FileSpreadsheet className="h-6 w-6 text-zinc-500" />
             )}
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-zinc-900">
             {isDragActive ? "Drop your file here" : "Upload Excel File"}
           </h3>
-          <p className="mt-1 text-center text-sm text-gray-500">
+          <p className="mt-1 text-center text-sm text-zinc-500">
             Drag & drop your .xlsx, .xls, or .csv file here
             <br />
             or click to browse
@@ -276,20 +276,20 @@ export default function ImportPage() {
         </div>
 
         {/* Paste Data */}
-        <div className="rounded-xl border-2 border-dashed border-gray-200 bg-white p-8 transition-all hover:border-gray-300">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
-            <Clipboard className="h-6 w-6 text-gray-500" />
+        <div className="rounded-xl border-2 border-dashed border-zinc-200 bg-white p-8 transition-all hover:border-zinc-300">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-100">
+            <Clipboard className="h-6 w-6 text-zinc-500" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-zinc-900">
             Paste Tabular Data
           </h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-zinc-500">
             Copy from Excel/Sheets and paste below. We&apos;ll parse it automatically.
           </p>
           <textarea
             value={pastedText}
             onChange={(e) => setPastedText(e.target.value)}
-            className="mt-4 h-40 w-full resize-none rounded-lg border border-gray-200 p-3 text-sm text-gray-700 placeholder-gray-400 focus:border-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400"
+            className="mt-4 h-40 w-full resize-none rounded-lg border border-zinc-200 p-3 text-sm text-zinc-700 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400"
             placeholder={`Paste your data here...\n\nExample:\nMain Title\tTitle\tDetails\nEnvelope 1\tForm A\tTechnical Proposal\nEnvelope 2\tForm B\tCommercial Proposal`}
           />
           <button

@@ -7,6 +7,7 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  setDoc,
   query,
   orderBy,
   Timestamp,
@@ -40,6 +41,8 @@ export interface Project {
 export interface ColumnDef {
   id: string;
   label: string;
+  type?: 'text' | 'number';
+  printHidden?: boolean;
 }
 
 export interface SheetRow {
@@ -161,6 +164,28 @@ export async function toggleProjectStar(id: string, starred: boolean) {
     starred,
     updatedAt: Timestamp.now(),
   });
+}
+
+// ─── Settings ────────────────────────────────────────────────────────────
+
+export interface AppSettings {
+  fontFamily?: string;
+  fontSize?: string;
+  borderThickness?: string;
+}
+
+const SETTINGS_ID = "app_settings";
+
+export async function getSettings(): Promise<AppSettings> {
+  try {
+    const snap = await getDoc(doc(db, "settings", SETTINGS_ID));
+    if (snap.exists()) return snap.data() as AppSettings;
+  } catch {}
+  return {};
+}
+
+export async function updateSettings(data: AppSettings) {
+  await setDoc(doc(db, "settings", SETTINGS_ID), data as any, { merge: true });
 }
 
 // ─── Envelopes CRUD ──────────────────────────────────────────────────────

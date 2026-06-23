@@ -7,6 +7,7 @@ import {
   Home,
   FolderKanban,
   Archive,
+  Settings,
   Star,
   ChevronDown,
 } from "lucide-react";
@@ -246,6 +247,17 @@ export default function Sidebar() {
         >
           <Archive className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.5]" />
           <span>Archive</span>
+        </Link>
+
+        {/* Settings */}
+        <Link
+          href="/settings"
+          className={`flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-all duration-150 ${
+            pathname === "/settings" ? "text-zinc-900" : "text-zinc-500 hover:text-zinc-800"
+          }`}
+        >
+          <Settings className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.5]" />
+          <span>Settings</span>
         </Link>
       </nav>
     </aside>

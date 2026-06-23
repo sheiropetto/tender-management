@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Plus, Trash2, X, GripVertical } from "lucide-react";
+import { Plus, Trash2, X, GripVertical, Pin, Printer } from "lucide-react";
 import type { ColumnDef, SheetRow } from "@/lib/firestoreService";
 
 interface SpreadsheetTableProps {
@@ -34,7 +34,16 @@ export default function SpreadsheetTable({
   const editInputRef = useRef<HTMLInputElement>(null);
   const [colWidths, setColWidths] = useState<Record<string, number>>({});
   const resizing = useRef<{ colId: string; startX: number; startW: number } | null>(null);
-  const [frozenCols, setFrozenCols] = useState(1); // freeze first column
+  const [frozenCols, setFrozenCols] = useState(1);
+  const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+
+  // ─── Selection state ──────────────────────────────────────────────────
+  const [selection, setSelection] = useState<{ sr: number; sc: number; er: number; ec: number } | null>(null);
+  const selecting = useRef(false);
+  const selectAnchor = useRef<{ r: number; c: number } | null>(null);
+
+  // ─── Column type editing ──────────────────────────────────────────────
+  const [editingColType, setEditingColType] = useState<string | null>(null);
 
   // ─── Drag reorder state ──────────────────────────────────────────────
   const dragCol = useRef<{ index: number } | null>(null);
@@ -46,6 +55,23 @@ export default function SpreadsheetTable({
       editInputRef.current.select();
     }
   }, [editingCol]);
+
+  // Auto-fit all columns on mount when data is ready
+  useEffect(() => {
+    if (columns.length === 0) return;
+    const widths: Record<string, number> = {};
+    columns.forEach((col) => {
+      const headerW = measureText(col.label, 11) + 40;
+      let maxW = headerW;
+      rows.forEach((row) => {
+        const text = row.cells[col.id] || "";
+        const w = measureText(text, 13);
+        if (w > maxW) maxW = w;
+      });
+      widths[col.id] = Math.max(120, Math.min(600, maxW));
+    });
+    setColWidths(widths);
+  }, [columns.length, rows.length]);
 
   // ─── Column resize ─────────────────────────────────────────────────────
 
@@ -89,7 +115,7 @@ export default function SpreadsheetTable({
       const w = measureText(text, 13);
       if (w > maxW) maxW = w;
     });
-    setColWidths((prev) => ({ ...prev, [colId]: Math.max(80, Math.min(450, maxW)) }));
+    setColWidths((prev) => ({ ...prev, [colId]: Math.max(80, Math.min(600, maxW)) }));
   }, [columns, rows]);
 
   // ─── Columns ───────────────────────────────────────────────────────────
@@ -160,6 +186,14 @@ export default function SpreadsheetTable({
     onRowsChange(newRows);
   };
 
+  const insertRowBelow = (index: number) => {
+    const cells: Record<string, string> = {};
+    columns.forEach((c) => (cells[c.id] = ""));
+    const newRows = [...rows];
+    newRows.splice(index + 1, 0, { id: genId(), cells });
+    onRowsChange(newRows);
+  };
+
   const deleteRow = (rowId: string) => {
     if (rows.length <= 1) return;
     onRowsChange(rows.filter((r) => r.id !== rowId));
@@ -171,6 +205,145 @@ export default function SpreadsheetTable({
         r.id === rowId ? { ...r, cells: { ...r.cells, [colId]: value } } : r
       )
     );
+  };
+
+  // ─── Selection handlers ───────────────────────────────────────────────
+
+  const isSelected = (r: number, c: number) => {
+    if (!selection) return false;
+    const minR = Math.min(selection.sr, selection.er);
+    const maxR = Math.max(selection.sr, selection.er);
+    const minC = Math.min(selection.sc, selection.ec);
+    const maxC = Math.max(selection.sc, selection.ec);
+    return r >= minR && r <= maxR && c >= minC && c <= maxC;
+  };
+
+  const handleCellMouseDown = (r: number, c: number, e: React.MouseEvent) => {
+    if (e.shiftKey && selectAnchor.current) {
+      setSelection({ sr: selectAnchor.current.r, sc: selectAnchor.current.c, er: r, ec: c });
+      return;
+    }
+    selectAnchor.current = { r, c };
+    selecting.current = true;
+    setSelection({ sr: r, sc: c, er: r, ec: c });
+  };
+
+  const handleCellMouseEnter = (r: number, c: number) => {
+    if (!selecting.current || !selectAnchor.current) return;
+    setSelection({ sr: selectAnchor.current.r, sc: selectAnchor.current.c, er: r, ec: c });
+  };
+
+  // ─── Clipboard ────────────────────────────────────────────────────────
+
+  const copySelection = () => {
+    if (!selection) return;
+    const minR = Math.min(selection.sr, selection.er);
+    const maxR = Math.max(selection.sr, selection.er);
+    const minC = Math.min(selection.sc, selection.ec);
+    const maxC = Math.max(selection.sc, selection.ec);
+    const lines: string[] = [];
+    for (let r = minR; r <= maxR; r++) {
+      const cells: string[] = [];
+      for (let c = minC; c <= maxC; c++) {
+        cells.push(rows[r]?.cells[columns[c]?.id] || "");
+      }
+      lines.push(cells.join("\t"));
+    }
+    navigator.clipboard.writeText(lines.join("\n"));
+  };
+
+  const cutSelection = () => {
+    if (!selection) return;
+    copySelection();
+    clearSelection();
+  };
+
+  const clearSelection = () => {
+    if (!selection) return;
+    const minR = Math.min(selection.sr, selection.er);
+    const maxR = Math.max(selection.sr, selection.er);
+    const minC = Math.min(selection.sc, selection.ec);
+    const maxC = Math.max(selection.sc, selection.ec);
+    let newRows = [...rows];
+    for (let r = minR; r <= maxR; r++) {
+      for (let c = minC; c <= maxC; c++) {
+        const colId = columns[c]?.id;
+        if (colId && newRows[r]) {
+          newRows[r] = { ...newRows[r], cells: { ...newRows[r].cells, [colId]: "" } };
+        }
+      }
+    }
+    onRowsChange(newRows);
+  };
+
+  const handleGlobalKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'c') { copySelection(); e.preventDefault(); }
+      if (e.key === 'x') { cutSelection(); e.preventDefault(); }
+      if (e.key === 'v') {
+        e.preventDefault();
+        navigator.clipboard.readText().then((text) => {
+          if (!selection) return;
+          const minR = Math.min(selection.sr, selection.er);
+          const minC = Math.min(selection.sc, selection.ec);
+          const lines = text.split(/\r?\n/);
+          let newCols = [...columns];
+          let newRows = [...rows];
+          lines.forEach((line, ri) => {
+            const vals = line.split("\t");
+            const rowIdx = minR + ri;
+            // Ensure row exists
+            while (newRows.length <= rowIdx) {
+              const cells: Record<string, string> = {};
+              newCols.forEach((c) => (cells[c.id] = ""));
+              newRows.push({ id: genId(), cells });
+            }
+            vals.forEach((val, ci) => {
+              const colIdx = minC + ci;
+              // Ensure column exists
+              while (newCols.length <= colIdx) {
+                const id = genId();
+                newCols.push({ id, label: `Column ${newCols.length + 1}` });
+              }
+              if (newRows[rowIdx] && newCols[colIdx]) {
+                newRows[rowIdx].cells[newCols[colIdx].id] = val;
+              }
+            });
+          });
+          onColumnsChange(newCols);
+          onRowsChange(newRows);
+        });
+      }
+    }
+    // Escape clears selection
+    if (e.key === 'Escape') {
+      setSelection(null);
+      selectAnchor.current = null;
+    }
+  }, [selection, columns, rows]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [handleGlobalKeyDown]);
+
+  // Clear selection on mouseup anywhere
+  useEffect(() => {
+    const up = () => { selecting.current = false; };
+    document.addEventListener('mouseup', up);
+    return () => document.removeEventListener('mouseup', up);
+  }, []);
+
+  // ─── Format cell value ────────────────────────────────────────────────
+
+  const formatCellValue = (val: string, col: ColumnDef): string => {
+    if (!val) return val;
+    if (col.type === 'number') {
+      const n = parseFloat(val.replace(/[^0-9.-]/g, ''));
+      return isNaN(n) ? val : n.toLocaleString();
+    }
+    // currency removed — use number type instead
+    return val;
   };
 
   // ─── Drag-to-reorder rows ─────────────────────────────────────────────
@@ -254,6 +427,23 @@ export default function SpreadsheetTable({
     onRowsChange(newRows);
   };
 
+  // ─── Auto-resize textarea ─────────────────────────────────────────
+
+  const autoResize = (el: HTMLTextAreaElement | null) => {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.max(36, el.scrollHeight) + 'px';
+  };
+
+  // ─── Auto-resize all textareas on rows change (initial load, paste, etc.) ─
+  useEffect(() => {
+    // Use rAF to wait for DOM to paint after state update
+    const raf = requestAnimationFrame(() => {
+      document.querySelectorAll<HTMLTextAreaElement>('textarea[data-row-id]').forEach(autoResize);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [rows]);
+
   // ─── Toggle frozen columns ────────────────────────────────────────────
 
   const toggleFrozen = () => {
@@ -278,19 +468,19 @@ export default function SpreadsheetTable({
                   className={`text-[9px] px-1 rounded transition-colors ${frozenCols > 0 ? 'text-zinc-600 bg-zinc-200' : 'text-zinc-300 hover:text-zinc-500'}`}
                   title={frozenCols > 0 ? "Unfreeze" : "Freeze column"}
                 >
-                  📌
+                  <Pin className={`h-3 w-3 stroke-[1.5] ${frozenCols > 0 ? 'text-zinc-600' : 'text-zinc-300'}`} />
                 </button>
               </div>
             </th>
             {columns.map((col, i) => (
               <th
                 key={col.id}
-                className={`relative border-r border-zinc-200 last:border-r-0 px-2 py-2 group select-none ${
+                className={`relative border-r border-zinc-200 last:border-r-0 px-2 py-2 group select-none ${col.printHidden ? 'opacity-40' : ''} ${
                   frozenCols > 0 && i < frozenCols ? 'sticky z-10 bg-zinc-50' : ''
                 }`}
                 style={{
-                  width: colWidths[col.id] || 160,
-                  minWidth: 80,
+                  width: colWidths[col.id] || undefined,
+                  minWidth: 150,
                   left: frozenCols > 0 && i < frozenCols ? (i === 0 ? '40px' : `${40 + (colWidths[columns[0]?.id] || 160)}px`) : undefined,
                 }}
                 draggable
@@ -317,16 +507,39 @@ export default function SpreadsheetTable({
                     className="w-full rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-xs font-medium text-zinc-800 outline-none"
                   />
                 ) : (
-                  <div
-                    onClick={() => {
-                      startEditCol(col);
-                      selectColumnCells(col.id);
-                    }}
-                    className="cursor-pointer text-xs font-medium text-zinc-600 hover:text-zinc-900 truncate pr-4"
-                    title="Click to rename · Shift+click to select cells"
-                  >
-                    <GripVertical className="h-3 w-3 stroke-[1] text-zinc-300 inline mr-1 cursor-grab" />
-                    {col.label}
+                  <div className="flex flex-col gap-0.5">
+                    <div
+                      onClick={() => {
+                        startEditCol(col);
+                        selectColumnCells(col.id);
+                      }}
+                      className="cursor-pointer text-xs font-medium text-zinc-600 hover:text-zinc-900 truncate pr-4"
+                      title="Click to rename"
+                    >
+                      <GripVertical className="h-3 w-3 stroke-[1] text-zinc-300 inline mr-1 cursor-grab" />
+                      {col.label}
+                    </div>
+                    <div className="flex gap-1 items-center">
+                      {(['text', 'number'] as const).map((t) => (
+                        <button
+                          key={t}
+                          onClick={(e) => { e.stopPropagation(); onColumnsChange(columns.map((c) => c.id === col.id ? { ...c, type: c.type === t ? undefined : t } : c)); }}
+                          className={`text-[8px] px-1 rounded transition-colors ${
+                            (col.type || 'text') === t ? 'bg-zinc-200 text-zinc-600' : 'text-zinc-300 hover:text-zinc-500'
+                          }`}
+                        >
+                          {t === 'text' ? 'T' : '#'}
+                        </button>
+                      ))}
+                      <span className="w-px h-2.5 bg-zinc-200 mx-0.5" />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onColumnsChange(columns.map((c) => c.id === col.id ? { ...c, printHidden: !c.printHidden } : c)); }}
+                        className={`transition-colors ${col.printHidden ? 'text-zinc-200 hover:text-zinc-400' : 'text-zinc-400 hover:text-zinc-600'}`}
+                        title={col.printHidden ? 'Hidden from print — click to show' : 'Visible in print — click to hide'}
+                      >
+                        <Printer className="h-3 w-3 stroke-[1.5]" />
+                      </button>
+                    </div>
                   </div>
                 )}
                 {/* Column actions */}
@@ -375,30 +588,78 @@ export default function SpreadsheetTable({
               >
                 {i + 1}
               </td>
-              {columns.map((col) => (
+              {columns.map((col, ci) => {
+                const sel = isSelected(i, ci);
+                const numeric = col.type === 'number';
+                return (
                 <td
                   key={col.id}
-                  className={`border-r border-zinc-100 last:border-r-0 px-2 py-1 ${
-                    frozenCols > 0 && columns.indexOf(col) < frozenCols ? 'sticky z-10 bg-white group-hover:bg-zinc-50/50' : ''
+                  className={`border-r border-zinc-100 last:border-r-0 px-2 py-1 ${col.printHidden ? 'print:hidden opacity-30' : ''} ${
+                    sel ? 'bg-zinc-100' : ''
+                  } ${
+                    frozenCols > 0 && ci < frozenCols ? `sticky z-10 ${sel ? 'bg-zinc-100' : 'bg-white group-hover:bg-zinc-50/50'}` : ''
                   }`}
                   style={{
-                    width: colWidths[col.id] || 160,
-                    left: frozenCols > 0 && columns.indexOf(col) < frozenCols
-                      ? (columns.indexOf(col) === 0 ? '40px' : `${40 + (colWidths[columns[0]?.id] || 160)}px`)
+                    width: colWidths[col.id] || undefined,
+                    left: frozenCols > 0 && ci < frozenCols
+                      ? (ci === 0 ? '40px' : `${40 + (colWidths[columns[0]?.id] || 160)}px`)
                       : undefined,
                   }}
+                  onMouseDown={(e) => handleCellMouseDown(i, ci, e)}
+                  onMouseEnter={() => handleCellMouseEnter(i, ci)}
                 >
                   <textarea
                     value={row.cells[col.id] || ""}
-                    onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                    onChange={(e) => {
+                      updateCell(row.id, col.id, e.target.value);
+                      autoResize(e.target);
+                    }}
+                    onInput={(e) => autoResize(e.target as HTMLTextAreaElement)}
+                    onKeyDown={(e) => {
+                      const ta = e.target as HTMLTextAreaElement;
+                      const cursorAtStart = ta.selectionStart === 0 && ta.selectionEnd === 0;
+                      const cursorAtEnd = ta.selectionStart === ta.value.length;
+                      const rowIndex = rows.findIndex((r) => r.id === row.id);
+                      const colIndex = columns.findIndex((c) => c.id === col.id);
+                      if (e.key === 'ArrowUp' && cursorAtStart && rowIndex > 0) {
+                        e.preventDefault();
+                        const prevId = rows[rowIndex - 1].id;
+                        const prev = document.querySelector<HTMLTextAreaElement>(`[data-row-id="${prevId}"][data-col-id="${col.id}"]`);
+                        prev?.focus();
+                        prev?.setSelectionRange(prev.value.length, prev.value.length);
+                      }
+                      if (e.key === 'ArrowDown' && cursorAtEnd && rowIndex < rows.length - 1) {
+                        e.preventDefault();
+                        const nextId = rows[rowIndex + 1].id;
+                        const next = document.querySelector<HTMLTextAreaElement>(`[data-row-id="${nextId}"][data-col-id="${col.id}"]`);
+                        next?.focus();
+                        next?.setSelectionRange(0, 0);
+                      }
+                      if (e.key === 'ArrowLeft' && cursorAtStart && colIndex > 0) {
+                        e.preventDefault();
+                        const prevCol = columns[colIndex - 1];
+                        const prev = document.querySelector<HTMLTextAreaElement>(`[data-row-id="${row.id}"][data-col-id="${prevCol.id}"]`);
+                        prev?.focus();
+                        prev?.setSelectionRange(prev.value.length, prev.value.length);
+                      }
+                      if (e.key === 'ArrowRight' && cursorAtEnd && colIndex < columns.length - 1) {
+                        e.preventDefault();
+                        const nextCol = columns[colIndex + 1];
+                        const next = document.querySelector<HTMLTextAreaElement>(`[data-row-id="${row.id}"][data-col-id="${nextCol.id}"]`);
+                        next?.focus();
+                        next?.setSelectionRange(0, 0);
+                      }
+                    }}
                     onPaste={(e) => handlePaste(e, row.id, col.id)}
+                    data-row-id={row.id}
                     data-col-id={col.id}
                     rows={1}
-                    className="w-full resize-none border-0 bg-transparent px-1 py-1.5 text-sm text-zinc-700 outline-none focus:ring-0 placeholder-zinc-300"
+                    className={`w-full resize-none border-0 bg-transparent px-1 py-1.5 text-sm outline-none focus:ring-0 placeholder-zinc-300 overflow-hidden break-words whitespace-pre-wrap ${numeric ? 'text-right text-zinc-700' : 'text-zinc-700'}`}
                     placeholder="—"
                   />
                 </td>
-              ))}
+                );
+              })}
               {/* Row actions */}
               <td className="w-10 px-1 py-1 align-top pt-2.5">
                 <div className="flex flex-col items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -408,6 +669,13 @@ export default function SpreadsheetTable({
                     title="Insert row above"
                   >
                     <Plus className="h-3 w-3 stroke-[1.5]" />
+                  </button>
+                  <button
+                    onClick={() => insertRowBelow(i)}
+                    className="flex h-5 w-5 items-center justify-center rounded text-zinc-300 hover:bg-zinc-200 hover:text-zinc-600"
+                    title="Insert row below"
+                  >
+                    <Plus className="h-3 w-3 stroke-[1.5] rotate-180" />
                   </button>
                   {rows.length > 1 && (
                     <button
@@ -425,8 +693,8 @@ export default function SpreadsheetTable({
         </tbody>
       </table>
 
-      {/* Add row button */}
-      <div className="px-2 py-2 border-t border-zinc-100">
+      {/* Bottom toolbar */}
+      <div className="flex items-center px-2 py-2 border-t border-zinc-100">
         <button
           onClick={addRow}
           className="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors"

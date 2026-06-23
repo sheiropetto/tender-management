@@ -4,19 +4,47 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { getProject, type Envelope, type Project } from "@/lib/firestoreService";
+import { getProject, getSettings, type Envelope, type Project, type AppSettings } from "@/lib/firestoreService";
 import { Loader2 } from "lucide-react";
+
+function parseBorderPx(s: string | undefined): number {
+  if (!s) return 3;
+  const m = s.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : 3;
+}
 
 export default function EnvelopeDividerPreviewPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const envId = searchParams.get("envelopeId") || "";
-  const labelType = searchParams.get("type") || "original"; // original | copy
+  const labelType = searchParams.get("type") || "original";
 
   const [project, setProject] = useState<Project | null>(null);
   const [envelope, setEnvelope] = useState<Envelope | null>(null);
   const [loading, setLoading] = useState(true);
+  const [borderPx, setBorderPx] = useState(3);
+
+  useEffect(() => {
+    const projectId = params.id as string;
+    if (!projectId || !envId) return;
+
+    Promise.all([
+      getProject(projectId),
+      getDoc(doc(db, "envelopes", envId)).then((snap) =>
+        snap.exists() ? { id: snap.id, ...snap.data() } as Envelope : null
+      ),
+      getSettings(),
+    ])
+      .then(([proj, env, settings]) => {
+        if (!proj || !env) { router.push("/projects"); return; }
+        setProject(proj);
+        setEnvelope(env);
+        setBorderPx(parseBorderPx(settings.borderThickness));
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [params.id, envId, router]);
 
   useEffect(() => {
     const projectId = params.id as string;
@@ -87,7 +115,7 @@ export default function EnvelopeDividerPreviewPage() {
 
       {/* Envelope Divider Page — A4 Landscape */}
       <div className="env-divider-page">
-        <div className="env-divider-frame">
+        <div className="env-divider-frame" style={{ borderWidth: borderPx }}>
           {/* Label at top-right corner */}
           <p className="env-divider-label">{labelText}</p>
 

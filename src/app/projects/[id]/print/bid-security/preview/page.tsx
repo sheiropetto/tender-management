@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { getProject, type Project } from "@/lib/firestoreService";
+import { getProject, getSettings, type Project, type AppSettings } from "@/lib/firestoreService";
 import { Loader2 } from "lucide-react";
 
 export default function BidSecurityPreviewPage() {
@@ -14,13 +14,19 @@ export default function BidSecurityPreviewPage() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [borderPx, setBorderPx] = useState(3);
 
   useEffect(() => {
     const id = params.id as string;
     if (!id) return;
-    getProject(id).then((proj) => {
+    Promise.all([
+      getProject(id),
+      getSettings(),
+    ]).then(([proj, settings]) => {
       if (!proj) { router.push("/projects"); return; }
       setProject(proj);
+      const m = (settings.borderThickness || "").match(/(\d+)/);
+      setBorderPx(m ? parseInt(m[1], 10) : 3);
     }).catch(console.error).finally(() => setLoading(false));
   }, [params.id, router]);
 
@@ -86,7 +92,7 @@ export default function BidSecurityPreviewPage() {
             style={{
               position: 'relative', width: '190mm', height: '125mm',
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              border: '3px solid #000', boxSizing: 'border-box'
+              border: `${borderPx}px solid #000`, boxSizing: 'border-box'
             }}
           >
             <p style={{
@@ -120,7 +126,7 @@ export default function BidSecurityPreviewPage() {
       ) : (
         /* ─── Bid Security — A4 Landscape ─── */
         <div className="env-divider-page">
-          <div className="env-divider-frame">
+          <div className="env-divider-frame" style={{ borderWidth: borderPx }}>
             <p className="env-divider-label">{labelText}</p>
             <div className="env-divider-content">
               <div className="env-divider-top">

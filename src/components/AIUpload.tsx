@@ -114,7 +114,7 @@ export default function AIUpload({ onDataExtracted }: AIUploadProps) {
           isDragActive
             ? "border-zinc-400 bg-zinc-50"
             : status === "done"
-            ? "border-emerald-200 bg-emerald-50/30"
+            ? "border-zinc-200 bg-zinc-50/30"
             : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
         }`}
       >
@@ -130,15 +130,15 @@ export default function AIUpload({ onDataExtracted }: AIUploadProps) {
           </>
         ) : status === "done" ? (
           <>
-            <CheckCircle2 className="h-5 w-5 text-emerald-500 stroke-[1.5]" />
+            <CheckCircle2 className="h-5 w-5 text-zinc-500 stroke-[1.5]" />
             <div className="text-left">
-              <p className="text-sm text-emerald-700">{message}</p>
-              {fileName && <p className="text-xs text-emerald-500">{fileName}</p>}
+              <p className="text-sm text-zinc-700">{message}</p>
+              {fileName && <p className="text-xs text-zinc-500">{fileName}</p>}
             </div>
           </>
         ) : status === "error" ? (
           <>
-            <AlertCircle className="h-5 w-5 text-red-400 stroke-[1.5]" />
+            <AlertCircle className="h-5 w-5 text-zinc-400 stroke-[1.5]" />
             <div className="text-left">
               <p className="text-sm text-red-600">{message}</p>
               <p className="text-xs text-zinc-400">Click or drop to try again</p>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Save, FileDown } from "lucide-react";
+import { ArrowLeft, Loader2, FileDown, Undo2 } from "lucide-react";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { updateEnvelope, type Envelope, type ColumnDef, type SheetRow } from "@/lib/firestoreService";
@@ -20,6 +20,26 @@ export default function EnvelopeDetailPage() {
   const [columns, setColumns] = useState<ColumnDef[]>([]);
   const [rows, setRows] = useState<SheetRow[]>([]);
   const [dirty, setDirty] = useState(false);
+  const [history, setHistory] = useState<{ cols: ColumnDef[]; rows: SheetRow[] }[]>([]);
+
+  const pushSnapshot = useCallback(() => {
+    setHistory((prev) => {
+      const next = [...prev, { cols: JSON.parse(JSON.stringify(columns)), rows: JSON.parse(JSON.stringify(rows)) }];
+      if (next.length > 50) next.shift();
+      return next;
+    });
+  }, [columns, rows]);
+
+  const handleUndo = useCallback(() => {
+    setHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setColumns(last.cols);
+      setRows(last.rows);
+      setDirty(true);
+      return prev.slice(0, -1);
+    });
+  }, []);
 
   useEffect(() => {
     const id = params.id as string;
@@ -57,16 +77,18 @@ export default function EnvelopeDetailPage() {
   }, [params.id, router]);
 
   const handleColumnsChange = useCallback((newCols: ColumnDef[]) => {
+    pushSnapshot();
     setColumns(newCols);
     setDirty(true);
-  }, []);
+  }, [pushSnapshot]);
 
   const handleRowsChange = useCallback((newRows: SheetRow[]) => {
+    pushSnapshot();
     setRows(newRows);
     setDirty(true);
-  }, []);
+  }, [pushSnapshot]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!envelope?.id) return;
     setSaving(true);
     try {
@@ -77,7 +99,31 @@ export default function EnvelopeDetailPage() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [envelope?.id, columns, rows]);
+
+  // Auto-save with 1.5s debounce when dirty
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestColsRef = useRef(columns);
+  const latestRowsRef = useRef(rows);
+  latestColsRef.current = columns;
+  latestRowsRef.current = rows;
+
+  useEffect(() => {
+    if (!dirty || !envelope?.id) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaving(true);
+      try {
+        await updateEnvelope(envelope.id!, { columns: latestColsRef.current, rows: latestRowsRef.current });
+        setDirty(false);
+      } catch (err) {
+        console.error("Auto-save failed:", err);
+      } finally {
+        setSaving(false);
+      }
+    }, 1500);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [dirty, envelope?.id]);
 
   if (loading) {
     return (
@@ -108,6 +154,14 @@ export default function EnvelopeDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+          <button
+            onClick={handleUndo}
+            disabled={history.length === 0}
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-transparent px-4 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-50 disabled:opacity-30"
+            title="Undo"
+          >
+            <Undo2 className="h-4 w-4 stroke-[1.5]" />
+          </button>
           <Link
             href={`/envelopes/${envelope.id}/dividers`}
             className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
@@ -115,21 +169,21 @@ export default function EnvelopeDetailPage() {
             <FileDown className="h-4 w-4 stroke-[1.5]" />
             Generate Dividers
           </Link>
-          <button
-            onClick={handleSave}
-            disabled={saving || !dirty}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-transparent px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
-          >
+          <div className="flex items-center gap-2 text-sm text-zinc-400">
             {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin stroke-[1.5]" />
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[1.5]" />
+                <span>Saving...</span>
+              </>
+            ) : dirty ? (
+              <span className="text-zinc-300">Unsaved</span>
             ) : (
-              <Save className="h-4 w-4 stroke-[1.5]" />
+              <span className="text-zinc-400">Saved</span>
             )}
-            {saving ? "Saving..." : dirty ? "Save Changes" : "Saved"}
-          </button>
           </div>
         </div>
       </div>
+    </div>
 
       {/* Spreadsheet */}
       {columns.length > 0 && (
