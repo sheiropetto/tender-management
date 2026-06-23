@@ -123,10 +123,8 @@ export default function DividersPage() {
 
   if (!envelope) return null;
 
-  const visibleCols = columns.filter((c) => !c.printHidden);
-  const refCol = visibleCols[0];
-  const descCol = visibleCols[1];
-  const extraCols = visibleCols.slice(2);
+  const refCol = columns[0];
+  const descCol = columns[1];
 
   // ─── Shared divider page render function ─────────────────────────
   function renderDividerPage(row: SheetRow) {
@@ -156,11 +154,11 @@ export default function DividersPage() {
               {descCol && row.cells[descCol.id] && (
                 <p className="divider-text divider-text-value">{row.cells[descCol.id]}</p>
               )}
-              {extraCols.map((col) =>
-                row.cells[col.id] ? (
-                  <p key={col.id} className="divider-text divider-text-value">{row.cells[col.id]}</p>
-                ) : null
-              )}
+              {columns.slice(2).map((col) => (
+                <p key={col.id} className="divider-text divider-text-value">
+                  {col.printHidden ? '\u00A0' : (row.cells[col.id] || '')}
+                </p>
+              ))}
             </div>
           </div>
         </div>
