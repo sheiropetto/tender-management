@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: var(--font-inter);
   --font-mono: var(--font-inter);
@@ -256,7 +258,7 @@ body {
   font-size: 10pt;
   font-weight: 400;
   color: #444;
-  margin-top: 3mm;
+  margin-top: 2mm;
 }
 
 .divider-text-envelope {
@@ -311,14 +313,14 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  margin: 0 0 1.5mm 0;
+  margin: 0 0 2mm 0;
 }
 
 .toc-ref {
   font-size: 10pt;
   font-weight: 400;
   color: #444;
-  margin: 0 0 6mm 0;
+  margin: 0 0 12mm 0;
 }
 
 .toc-title {
@@ -367,6 +369,34 @@ body {
   vertical-align: top;
 }
 
+/* Density Modifiers */
+.toc-tr-compact .toc-td {
+  padding: 1.2mm 2mm;
+  font-size: 9.5pt;
+}
+.toc-tr-compact .toc-th {
+  padding: 2mm 2mm;
+  font-size: 9pt;
+}
+
+.toc-tr-medium .toc-td {
+  padding: 2.5mm 2mm;
+  font-size: 11pt;
+}
+.toc-tr-medium .toc-th {
+  padding: 3mm 2mm;
+  font-size: 10pt;
+}
+
+.toc-tr-cozy .toc-td {
+  padding: 4mm 2mm;
+  font-size: 13pt;
+}
+.toc-tr-cozy .toc-th {
+  padding: 4.5mm 2mm;
+  font-size: 11.5pt;
+}
+
 .toc-td-no { text-align: center; color: #666; }
 .toc-td-app { font-weight: 600; }
 .toc-td-title { }
@@ -380,4 +410,28 @@ body {
   border: 1px solid rgba(0,0,0,0.1);
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
+}
+
+@media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .toc-page {
+    margin: 0 auto !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    page-break-before: always !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
+  .toc-frame {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }

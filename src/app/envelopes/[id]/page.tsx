@@ -45,6 +45,20 @@ export default function EnvelopeDetailPage() {
   }, []);
 
   useEffect(() => {
+    const handleGlobalUndoKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        const activeTag = document.activeElement?.tagName.toLowerCase();
+        if (activeTag !== 'textarea' && activeTag !== 'input') {
+          e.preventDefault();
+          handleUndo();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleGlobalUndoKey);
+    return () => document.removeEventListener('keydown', handleGlobalUndoKey);
+  }, [handleUndo]);
+
+  useEffect(() => {
     const id = params.id as string;
     if (!id) return;
 
@@ -249,78 +263,104 @@ export default function EnvelopeDetailPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-6">
-        <nav className="flex items-center gap-2 text-sm text-zinc-400 mb-4">
-          <Link href="/projects" className="hover:text-zinc-700 transition-colors">Projects</Link>
-          <span className="text-zinc-300">/</span>
+        <nav className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500 mb-3">
+          <Link href="/projects" className="hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">Projects</Link>
+          <span className="text-zinc-300 dark:text-zinc-700">/</span>
           {projectName ? (
-            <Link href={`/projects/${projectId}`} className="hover:text-zinc-700 transition-colors truncate max-w-[200px]">{projectName}</Link>
+            <Link href={`/projects/${projectId}`} className="hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors truncate max-w-[200px]">{projectName}</Link>
           ) : (
-            <span className="text-zinc-300">Loading...</span>
+            <span className="text-zinc-300 dark:text-zinc-700">Loading...</span>
           )}
-          <span className="text-zinc-300">/</span>
-          <span className="text-zinc-700 font-medium truncate max-w-[250px]">{envelope.title}</span>
+          <span className="text-zinc-300 dark:text-zinc-700">/</span>
+          <span className="text-zinc-700 dark:text-zinc-300 font-medium truncate max-w-[250px]">{envelope.title}</span>
         </nav>
-        <div className="flex items-start justify-between">
+        
+        {/* Title & Metadata Row */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
           <div>
-            <h1 className="text-xl font-medium text-zinc-900">{envelope.title}</h1>
-            <p className="mt-0.5 text-sm text-zinc-400">
-              {rows.length} row{rows.length !== 1 ? "s" : ""} · {columns.length} column{columns.length !== 1 ? "s" : ""}
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">{envelope.title}</h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              <span className="font-medium text-zinc-600 dark:text-zinc-300">{rows.length} row{rows.length !== 1 ? "s" : ""}</span>
+              <span className="text-zinc-300 dark:text-zinc-700">•</span>
+              <span className="font-medium text-zinc-600 dark:text-zinc-300">{columns.length} column{columns.length !== 1 ? "s" : ""}</span>
+              <span className="text-zinc-300 dark:text-zinc-700">•</span>
+              
+              {/* Auto-save Status Indicator */}
+              <div className="inline-flex items-center gap-1.5">
+                {saving ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400 dark:text-zinc-500" />
+                    <span className="text-xs text-zinc-400 dark:text-zinc-500">Saving...</span>
+                  </>
+                ) : dirty ? (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">Unsaved changes</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium font-sans">All changes saved</span>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-          <button
-            onClick={handleUndo}
-            disabled={history.length === 0}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-transparent px-4 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-50 disabled:opacity-30"
-            title="Undo"
-          >
-            <Undo2 className="h-4 w-4 stroke-[1.5]" />
-          </button>
-          <button
-            onClick={exportToExcel}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-transparent px-4 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-50"
-            title="Export as Excel"
-          >
-            <Download className="h-4 w-4 stroke-[1.5]" />
-            Export Excel
-          </button>
-          <button
-            onClick={() => setShowImport(true)}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-transparent px-4 py-2 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-50"
-            title="Import from Excel or CSV"
-          >
-            <Upload className="h-4 w-4 stroke-[1.5]" />
-            Import
-          </button>
-          <Link
-            href={`/envelopes/${envelope.id}/dividers`}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
-          >
-            <FileDown className="h-4 w-4 stroke-[1.5]" />
-            Generate Dividers
-          </Link>
-          <Link
-            href={`/envelopes/${envelope.id}/toc`}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
-          >
-            <List className="h-4 w-4 stroke-[1.5]" />
-            Table of Contents
-          </Link>
-          <div className="flex items-center gap-2 text-sm text-zinc-400">
-            {saving ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin stroke-[1.5]" />
-                <span>Saving...</span>
-              </>
-            ) : dirty ? (
-              <span className="text-zinc-300">Unsaved</span>
-            ) : (
-              <span className="text-zinc-400">Saved</span>
-            )}
+        </div>
+
+        {/* Action Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
+          <div className="flex items-center gap-2">
+            {/* Left side actions (Undo/History) */}
+            <button
+              onClick={handleUndo}
+              disabled={history.length === 0}
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full border border-zinc-300 dark:border-zinc-700 bg-transparent text-zinc-600 dark:text-zinc-300 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 className="h-4 w-4 stroke-[1.5]" />
+            </button>
+            
+            <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
+            
+            {/* Data Operations */}
+            <button
+              onClick={() => setShowImport(true)}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-full border border-zinc-300 dark:border-zinc-700 bg-transparent text-sm font-medium text-zinc-600 dark:text-zinc-300 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-700 cursor-pointer"
+              title="Import from Excel or CSV"
+            >
+              <Upload className="h-4 w-4 text-zinc-400 dark:text-zinc-500 stroke-[1.5]" />
+              <span className="whitespace-nowrap">Import</span>
+            </button>
+            <button
+              onClick={exportToExcel}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-full border border-zinc-300 dark:border-zinc-700 bg-transparent text-sm font-medium text-zinc-600 dark:text-zinc-300 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-700 cursor-pointer"
+              title="Export as Excel"
+            >
+              <Download className="h-4 w-4 text-zinc-400 dark:text-zinc-500 stroke-[1.5]" />
+              <span className="whitespace-nowrap">Export Excel</span>
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* Document outputs (Primary actions) */}
+            <Link
+              href={`/envelopes/${envelope.id}/dividers`}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-full border border-zinc-300 dark:border-zinc-700 bg-transparent text-sm font-medium text-zinc-600 dark:text-zinc-300 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-700"
+            >
+              <FileDown className="h-4 w-4 stroke-[1.5] text-zinc-400 dark:text-zinc-500" />
+              <span className="whitespace-nowrap">Generate Dividers</span>
+            </Link>
+            <Link
+              href={`/envelopes/${envelope.id}/toc`}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-full border border-zinc-300 dark:border-zinc-700 bg-transparent text-sm font-medium text-zinc-600 dark:text-zinc-300 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-700"
+            >
+              <List className="h-4 w-4 stroke-[1.5] text-zinc-400 dark:text-zinc-500" />
+              <span className="whitespace-nowrap">Table of Contents</span>
+            </Link>
           </div>
         </div>
       </div>
-    </div>
 
       {/* Spreadsheet */}
       {columns.length > 0 && (

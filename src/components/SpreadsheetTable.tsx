@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Plus, Trash2, X, GripVertical, Pin, Printer, Search, ArrowUp, ArrowDown, Replace } from "lucide-react";
+import { Plus, Trash2, X, GripVertical, Pin, Printer, Search, ArrowUp, ArrowDown, Replace, MoreVertical, Check } from "lucide-react";
 import type { ColumnDef, SheetRow } from "@/lib/firestoreService";
 
 interface SpreadsheetTableProps {
@@ -35,6 +35,19 @@ export default function SpreadsheetTable({
   const [colWidths, setColWidths] = useState<Record<string, number>>({});
   const resizing = useRef<{ colId: string; startX: number; startW: number } | null>(null);
   const [frozenCols, setFrozenCols] = useState(1);
+  const [openColMenu, setOpenColMenu] = useState<string | null>(null);
+  const [openRowMenu, setOpenRowMenu] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!openColMenu && !openRowMenu) return;
+    const close = () => {
+      setOpenColMenu(null);
+      setOpenRowMenu(null);
+    };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [openColMenu, openRowMenu]);
+
   const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   // ─── Selection state ──────────────────────────────────────────────────
@@ -443,31 +456,28 @@ export default function SpreadsheetTable({
 
   // ─── Paste from Excel/Sheets ──────────────────────────────────────────
 
-  const handlePaste = (e: React.ClipboardEvent, startRowId: string, startColId: string) => {
-    const pasted = e.clipboardData.getData("text");
-    if (!pasted.includes("\t") && !pasted.includes("\n")) return;
-
-    e.preventDefault();
+  const performPaste = useCallback((pasted: string, startRowId: string, startColId: string) => {
+    if (!pasted.includes("\t") && !pasted.includes("\n")) return false;
 
     const lines = pasted.split(/\r?\n/).filter((l) => l.trim() !== "" || pasted.includes("\t"));
     const grid = lines.map((line) => line.split("\t"));
 
-    if (grid.length === 0) return;
+    if (grid.length === 0) return false;
 
     const startRowIndex = rows.findIndex((r) => r.id === startRowId);
     const startColIndex = columns.findIndex((c) => c.id === startColId);
-    if (startRowIndex === -1 || startColIndex === -1) return;
+    if (startRowIndex === -1 || startColIndex === -1) return false;
 
     const numPasteCols = Math.max(...grid.map((r) => r.length));
 
-    let newCols = [...columns];
+    const newCols = [...columns];
     const neededCols = startColIndex + numPasteCols - columns.length;
     for (let i = 0; i < neededCols; i++) {
       const id = genId();
       newCols.push({ id, label: `Column ${newCols.length + 1}` });
     }
 
-    let newRows = [...rows];
+    const newRows = [...rows];
     const neededRows = startRowIndex + grid.length - rows.length;
     for (let i = 0; i < neededRows; i++) {
       const cells: Record<string, string> = {};
@@ -487,7 +497,40 @@ export default function SpreadsheetTable({
 
     onColumnsChange(newCols);
     onRowsChange(newRows);
+    return true;
+  }, [columns, rows, onColumnsChange, onRowsChange]);
+
+  const handlePaste = (e: React.ClipboardEvent, startRowId: string, startColId: string) => {
+    const pasted = e.clipboardData.getData("text");
+    if (performPaste(pasted, startRowId, startColId)) {
+      e.preventDefault();
+    }
   };
+
+  // Global paste handler on active selection
+  useEffect(() => {
+    const handleGlobalPasteEvent = (e: ClipboardEvent) => {
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      if (activeTag === 'textarea' || activeTag === 'input') return; // native paste handles it
+      if (!selection) return;
+
+      const pasted = e.clipboardData?.getData("text");
+      if (!pasted) return;
+
+      const minR = Math.min(selection.sr, selection.er);
+      const minC = Math.min(selection.sc, selection.ec);
+      const startRow = rows[minR];
+      const startCol = columns[minC];
+      if (startRow && startCol) {
+        if (performPaste(pasted, startRow.id, startCol.id)) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener('paste', handleGlobalPasteEvent);
+    return () => document.removeEventListener('paste', handleGlobalPasteEvent);
+  }, [selection, columns, rows, performPaste]);
 
   // ─── Auto-resize textarea ─────────────────────────────────────────
 
@@ -504,7 +547,7 @@ export default function SpreadsheetTable({
       document.querySelectorAll<HTMLTextAreaElement>('textarea[data-row-id]').forEach(autoResize);
     });
     return () => cancelAnimationFrame(raf);
-  }, [rows]);
+  }, [rows, colWidths]);
 
   // ─── Toggle frozen columns ────────────────────────────────────────────
 
@@ -615,14 +658,12 @@ export default function SpreadsheetTable({
     setCurrentMatch(0);
   };
 
-  // ─── Render ────────────────────────────────────────────────────────────
-
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white relative">
+    <div className="overflow-x-auto overflow-y-auto max-h-[70vh] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 relative">
       {/* ─── Find & Replace bar ──────────────────────────────────────── */}
       {showFind && (
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-200 bg-zinc-50/80 text-xs">
-          <Search className="h-3.5 w-3.5 text-zinc-400 stroke-[1.5]" />
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-950/80 text-xs">
+          <Search className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500 stroke-[1.5]" />
           <input
             ref={findInputRef}
             type="text"
@@ -633,35 +674,35 @@ export default function SpreadsheetTable({
               if (e.key === 'Escape') closeFind();
             }}
             placeholder="Find in sheet..."
-            className="w-36 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 outline-none focus:border-zinc-400"
+            className="w-36 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-200 outline-none focus:border-zinc-400 dark:focus:border-zinc-600"
           />
-          <span className="text-zinc-400 min-w-[4rem]">
+          <span className="text-zinc-400 dark:text-zinc-500 min-w-[4rem]">
             {matches.length > 0
               ? `${(currentMatch % matches.length) + 1} of ${matches.length}`
               : findText ? 'No results' : ''}
           </span>
-          <button onClick={goToPrevMatch} className="p-0.5 text-zinc-400 hover:text-zinc-600 rounded disabled:opacity-30" disabled={matches.length === 0} title="Previous (Shift+Enter)">
+          <button onClick={goToPrevMatch} className="p-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 rounded disabled:opacity-30 cursor-pointer" disabled={matches.length === 0} title="Previous (Shift+Enter)">
             <ArrowUp className="h-3 w-3 stroke-[1.5]" />
           </button>
-          <button onClick={goToNextMatch} className="p-0.5 text-zinc-400 hover:text-zinc-600 rounded disabled:opacity-30" disabled={matches.length === 0} title="Next (Enter)">
+          <button onClick={goToNextMatch} className="p-0.5 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 rounded disabled:opacity-30 cursor-pointer" disabled={matches.length === 0} title="Next (Enter)">
             <ArrowDown className="h-3 w-3 stroke-[1.5]" />
           </button>
-          <span className="w-px h-4 bg-zinc-200 mx-1" />
+          <span className="w-px h-4 bg-zinc-200 dark:bg-zinc-800 mx-1" />
           <input
             type="text"
             value={replaceText}
             onChange={(e) => setReplaceText(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') replaceCurrent(); }}
             placeholder="Replace with..."
-            className="w-28 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 outline-none focus:border-zinc-400"
+            className="w-28 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2 py-1 text-xs text-zinc-700 dark:text-zinc-200 outline-none focus:border-zinc-400 dark:focus:border-zinc-600"
           />
-          <button onClick={replaceCurrent} className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-200 transition-colors disabled:opacity-30" disabled={matches.length === 0}>
+          <button onClick={replaceCurrent} className="px-2 py-1 rounded text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 cursor-pointer" disabled={matches.length === 0}>
             Replace
           </button>
-          <button onClick={replaceAll} className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-200 transition-colors disabled:opacity-30" disabled={!findText}>
+          <button onClick={replaceAll} className="px-2 py-1 rounded text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors disabled:opacity-30 cursor-pointer" disabled={!findText}>
             All
           </button>
-          <button onClick={closeFind} className="ml-auto p-0.5 text-zinc-300 hover:text-zinc-500 rounded" title="Close (Escape)">
+          <button onClick={closeFind} className="ml-auto p-0.5 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 rounded cursor-pointer" title="Close (Escape)">
             <X className="h-3.5 w-3.5 stroke-[1.5]" />
           </button>
         </div>
@@ -669,32 +710,36 @@ export default function SpreadsheetTable({
       <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
         {/* ─── Header ─────────────────────────────────────────────────── */}
         <thead>
-          <tr className="border-b border-zinc-200 bg-zinc-50">
+          <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
             <th
-              className={`w-10 px-1 py-2 text-xs text-zinc-400 font-medium ${frozenCols > 0 ? 'sticky left-0 z-20 bg-zinc-50' : ''}`}
+              className={`w-10 px-1.5 py-2 text-xs text-zinc-400 dark:text-zinc-500 font-medium group/freeze sticky top-0 z-30 bg-zinc-50 dark:bg-zinc-900 ${frozenCols > 0 ? 'left-0 z-40' : ''}`}
             >
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 justify-center">
                 <input
                   type="checkbox"
                   checked={rows.length > 0 && selectedRows.size === rows.length}
                   onChange={toggleSelectAll}
-                  className="accent-zinc-600 cursor-pointer w-3 h-3"
+                  className="accent-zinc-650 dark:accent-zinc-550 cursor-pointer w-3.5 h-3.5 rounded border-zinc-300 dark:border-zinc-700 bg-transparent"
                   title={selectedRows.size === rows.length ? 'Deselect all' : 'Select all'}
                 />
                 <button
                   onClick={toggleFrozen}
-                  className={`text-[9px] px-1 rounded transition-colors ${frozenCols > 0 ? 'text-zinc-600 bg-zinc-200' : 'text-zinc-300 hover:text-zinc-500'}`}
+                  className={`text-[9px] p-0.5 rounded-full transition-all duration-150 cursor-pointer ${
+                    frozenCols > 0 
+                      ? 'text-zinc-600 dark:text-zinc-350 bg-zinc-200 dark:bg-zinc-805' 
+                      : 'text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 opacity-0 group-hover/freeze:opacity-100'
+                  }`}
                   title={frozenCols > 0 ? "Unfreeze" : "Freeze column"}
                 >
-                  <Pin className={`h-3 w-3 stroke-[1.5] ${frozenCols > 0 ? 'text-zinc-600' : 'text-zinc-300'}`} />
+                  <Pin className={`h-3 w-3 stroke-[1.5] ${frozenCols > 0 ? 'text-zinc-600 dark:text-zinc-300' : 'text-zinc-300 dark:text-zinc-600'}`} />
                 </button>
               </div>
             </th>
             {columns.map((col, i) => (
               <th
                 key={col.id}
-                className={`relative border-r border-zinc-200 last:border-r-0 px-2 py-2 group select-none ${col.printHidden ? 'opacity-40' : ''} ${
-                  frozenCols > 0 && i < frozenCols ? 'sticky z-10 bg-zinc-50' : ''
+                className={`relative border-r border-zinc-200 dark:border-zinc-800 last:border-r-0 px-3 py-2.5 group select-none text-center sticky top-0 z-20 bg-zinc-50 dark:bg-zinc-900 ${col.printHidden ? 'opacity-40' : ''} ${
+                  frozenCols > 0 && i < frozenCols ? 'left-[40px] z-30' : ''
                 }`}
                 style={{
                   width: colWidths[col.id] || undefined,
@@ -710,7 +755,7 @@ export default function SpreadsheetTable({
                 <div
                   onMouseDown={(e) => handleResizeStart(col.id, e)}
                   onDoubleClick={() => autoFitColumn(col.id)}
-                  className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize z-10 hover:bg-zinc-300/50"
+                  className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize z-10 hover:bg-zinc-300/50 dark:hover:bg-zinc-700/50"
                   style={{ transform: 'translateX(50%)' }}
                   title="Drag to resize · Double-click to auto-fit"
                 />
@@ -722,63 +767,131 @@ export default function SpreadsheetTable({
                     onChange={(e) => setColLabel(e.target.value)}
                     onBlur={finishEditCol}
                     onKeyDown={(e) => e.key === "Enter" && finishEditCol()}
-                    className="w-full rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-xs font-medium text-zinc-800 outline-none"
+                    className="w-full rounded border border-zinc-300 dark:border-zinc-750 bg-white dark:bg-zinc-800 px-1.5 py-0.5 text-xs font-medium text-zinc-800 dark:text-zinc-200 outline-none text-center"
                   />
                 ) : (
-                  <div className="flex flex-col gap-0.5">
-                    <div
+                  <div className="flex items-center justify-center gap-1 min-h-[28px] pr-6 pl-4">
+                    <GripVertical className="h-3.5 w-3.5 stroke-[1.2] text-zinc-300 dark:text-zinc-600 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    <span 
                       onClick={() => {
                         startEditCol(col);
                         selectColumnCells(col.id);
                       }}
-                      className="cursor-pointer text-xs font-medium text-zinc-600 hover:text-zinc-900 truncate pr-4"
+                      className="cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-zinc-100 truncate select-none"
                       title="Click to rename"
                     >
-                      <GripVertical className="h-3 w-3 stroke-[1] text-zinc-300 inline mr-1 cursor-grab" />
                       {col.label}
-                    </div>
-                    <div className="flex gap-1 items-center">
-                      {(['text', 'number'] as const).map((t) => (
-                        <button
-                          key={t}
-                          onClick={(e) => { e.stopPropagation(); onColumnsChange(columns.map((c) => c.id === col.id ? { ...c, type: c.type === t ? undefined : t } : c)); }}
-                          className={`text-[8px] px-1 rounded transition-colors ${
-                            (col.type || 'text') === t ? 'bg-zinc-200 text-zinc-600' : 'text-zinc-300 hover:text-zinc-500'
-                          }`}
-                        >
-                          {t === 'text' ? 'T' : '#'}
-                        </button>
-                      ))}
-                      <span className="w-px h-2.5 bg-zinc-200 mx-0.5" />
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onColumnsChange(columns.map((c) => c.id === col.id ? { ...c, printHidden: !c.printHidden } : c)); }}
-                        className={`transition-colors ${col.printHidden ? 'text-zinc-200 hover:text-zinc-400' : 'text-zinc-400 hover:text-zinc-600'}`}
-                        title={col.printHidden ? 'Hidden from print — click to show' : 'Visible in print — click to hide'}
-                      >
-                        <Printer className="h-3 w-3 stroke-[1.5]" />
-                      </button>
-                    </div>
+                    </span>
                   </div>
                 )}
-                {/* Column actions */}
-                <div className="absolute right-2 top-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {columns.length > 1 && (
+
+                {/* 3-dots button (More Options) */}
+                {!editingCol && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenColMenu(openColMenu === col.id ? null : col.id);
+                    }}
+                    className={`absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded-md hover:bg-zinc-200/60 dark:hover:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-all cursor-pointer ${
+                      openColMenu === col.id ? 'opacity-100 bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300' : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                    title="Column options"
+                  >
+                    <MoreVertical className="h-3.5 w-3.5 stroke-[1.5]" />
+                  </button>
+                )}
+
+                {/* Dropdown Menu */}
+                {openColMenu === col.id && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-1.5 top-10 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl py-1.5 z-50 text-left min-w-[160px] text-xs font-normal text-zinc-700 dark:text-zinc-300 overflow-hidden"
+                  >
                     <button
-                      onClick={() => deleteColumn(col.id)}
-                      className="flex h-4 w-4 items-center justify-center rounded text-zinc-300 hover:text-red-500 transition-colors"
-                      title="Delete column"
+                      onClick={() => {
+                        setOpenColMenu(null);
+                        startEditCol(col);
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900 flex items-center gap-2 cursor-pointer transition-colors"
                     >
-                      <X className="h-3 w-3 stroke-[1.5]" />
+                      <span>Rename Column</span>
                     </button>
-                  )}
-                </div>
+                    
+                    <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1.5" />
+                    
+                    <div className="px-3 py-1 text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                      Column Type
+                    </div>
+                    <button
+                      onClick={() => {
+                        setOpenColMenu(null);
+                        onColumnsChange(columns.map((c) => c.id === col.id ? { ...c, type: undefined } : c));
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900 flex items-center justify-between cursor-pointer transition-colors"
+                    >
+                      <span>Text</span>
+                      {col.type !== 'number' && <Check className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400 stroke-[1.5]" />}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOpenColMenu(null);
+                        onColumnsChange(columns.map((c) => c.id === col.id ? { ...c, type: 'number' } : c));
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900 flex items-center justify-between cursor-pointer transition-colors"
+                    >
+                      <span>Number</span>
+                      {col.type === 'number' && <Check className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400 stroke-[1.5]" />}
+                    </button>
+                    
+                    <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1.5" />
+                    
+                    <div className="px-3 py-1 text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                      Print Settings
+                    </div>
+                    <button
+                      onClick={() => {
+                        setOpenColMenu(null);
+                        onColumnsChange(columns.map((c) => c.id === col.id ? { ...c, printHidden: false } : c));
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900 flex items-center justify-between cursor-pointer transition-colors"
+                    >
+                      <span>Show in Print</span>
+                      {!col.printHidden && <Check className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400 stroke-[1.5]" />}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOpenColMenu(null);
+                        onColumnsChange(columns.map((c) => c.id === col.id ? { ...c, printHidden: true } : c));
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900 flex items-center justify-between cursor-pointer transition-colors"
+                    >
+                      <span>Hide from Print</span>
+                      {col.printHidden && <Check className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400 stroke-[1.5]" />}
+                    </button>
+                    
+                    {columns.length > 1 && (
+                      <>
+                        <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1.5" />
+                        <button
+                          onClick={() => {
+                            setOpenColMenu(null);
+                            deleteColumn(col.id);
+                          }}
+                          className="w-full px-3 py-1.5 text-left hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 flex items-center gap-2 cursor-pointer transition-colors"
+                        >
+                          <span>Delete Column</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </th>
             ))}
             {/* Add column button */}
-            <th className="w-10 px-1 py-2">
+            <th className="w-10 px-1 py-2 sticky top-0 z-20 bg-zinc-50 dark:bg-zinc-900">
               <button
                 onClick={addColumn}
-                className="flex h-6 w-6 items-center justify-center rounded text-zinc-300 hover:bg-zinc-200 hover:text-zinc-600 transition-colors"
+                className="flex h-6 w-6 items-center justify-center rounded text-zinc-300 dark:text-zinc-650 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
                 title="Add column"
               >
                 <Plus className="h-3.5 w-3.5 stroke-[1.5]" />
@@ -786,13 +899,11 @@ export default function SpreadsheetTable({
             </th>
           </tr>
         </thead>
-
-        {/* ─── Body ───────────────────────────────────────────────────── */}
         <tbody>
           {rows.map((row, i) => (
             <tr
               key={row.id}
-              className="border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50/50 group"
+              className="border-b border-zinc-100 dark:border-zinc-800 last:border-b-0 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 group"
               style={{ height: rowHeights[row.id] || undefined }}
               draggable
               onDragStart={() => handleRowDragStart(i)}
@@ -800,8 +911,8 @@ export default function SpreadsheetTable({
               onDragEnd={handleRowDragEnd}
             >
               <td
-                className={`px-1 py-2 text-xs text-zinc-400 align-middle cursor-grab ${
-                  frozenCols > 0 ? 'sticky left-0 z-10 bg-white group-hover:bg-zinc-50/50' : ''
+                className={`px-1 py-2 text-xs text-zinc-400 dark:text-zinc-500 align-middle cursor-grab ${
+                  frozenCols > 0 ? 'sticky left-0 z-10 bg-white dark:bg-zinc-900 group-hover:bg-zinc-50/50 dark:group-hover:bg-zinc-800/30' : ''
                 }`}
                 style={{ width: 40 }}
               >
@@ -813,10 +924,10 @@ export default function SpreadsheetTable({
                 return (
                 <td
                   key={col.id}
-                  className={`border-r border-zinc-100 last:border-r-0 px-2 py-1 align-middle ${col.printHidden ? 'print:hidden opacity-30' : ''} ${
-                    sel ? 'bg-zinc-100' : isCurrentMatchCell(i, ci) ? 'bg-amber-200' : isMatchCell(i, ci) ? 'bg-amber-50' : ''
+                  className={`border-r border-zinc-100 dark:border-zinc-800 last:border-r-0 px-2 py-1 align-middle ${col.printHidden ? 'print:hidden opacity-30' : ''} ${
+                    sel ? 'bg-zinc-100 dark:bg-zinc-800' : isCurrentMatchCell(i, ci) ? 'bg-amber-200 dark:bg-amber-900/50' : isMatchCell(i, ci) ? 'bg-amber-50 dark:bg-amber-950/20' : ''
                   } ${
-                    frozenCols > 0 && ci < frozenCols ? `sticky z-10 ${sel ? 'bg-zinc-100' : isCurrentMatchCell(i, ci) ? 'bg-amber-200' : isMatchCell(i, ci) ? 'bg-amber-50' : 'bg-white group-hover:bg-zinc-50/50'}` : ''
+                    frozenCols > 0 && ci < frozenCols ? `sticky z-10 ${sel ? 'bg-zinc-100 dark:bg-zinc-800' : isCurrentMatchCell(i, ci) ? 'bg-amber-200 dark:bg-amber-900/50' : isMatchCell(i, ci) ? 'bg-amber-50 dark:bg-amber-950/20' : 'bg-white dark:bg-zinc-900 group-hover:bg-zinc-50/50 dark:group-hover:bg-zinc-800/30'}` : ''
                   }`}
                   style={{
                     width: colWidths[col.id] || undefined,
@@ -873,7 +984,7 @@ export default function SpreadsheetTable({
                     data-row-id={row.id}
                     data-col-id={col.id}
                     rows={1}
-                    className={`w-full resize-none border-0 bg-transparent px-1 py-1.5 text-sm outline-none focus:ring-0 placeholder-zinc-300 overflow-hidden break-words whitespace-pre-wrap align-middle ${numeric ? 'text-right text-zinc-700' : 'text-zinc-700'}`}
+                    className={`w-full resize-none border-0 bg-transparent px-1 py-1.5 text-sm outline-none focus:ring-0 placeholder-zinc-300 dark:placeholder-zinc-700 overflow-hidden break-words whitespace-pre-wrap align-middle ${numeric ? 'text-right text-zinc-700 dark:text-zinc-200' : 'text-zinc-700 dark:text-zinc-200'}`}
                     placeholder="—"
                   />
                 </td>
@@ -881,36 +992,73 @@ export default function SpreadsheetTable({
               })}
               {/* Row actions */}
               <td className="w-10 px-1 py-1 align-middle relative">
-                <div className="flex flex-col items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
-                    onClick={() => insertRowAbove(i)}
-                    className="flex h-5 w-5 items-center justify-center rounded text-zinc-300 hover:bg-zinc-200 hover:text-zinc-600"
-                    title="Insert row above"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenRowMenu(openRowMenu === row.id ? null : row.id);
+                    }}
+                    className={`h-6 w-6 flex items-center justify-center rounded-md hover:bg-zinc-200/60 dark:hover:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-350 transition-all cursor-pointer ${
+                      openRowMenu === row.id ? 'opacity-100 bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300' : ''
+                    }`}
+                    title="Row options"
                   >
-                    <Plus className="h-3 w-3 stroke-[1.5]" />
+                    <MoreVertical className="h-3.5 w-3.5 stroke-[1.5]" />
                   </button>
-                  <button
-                    onClick={() => insertRowBelow(i)}
-                    className="flex h-5 w-5 items-center justify-center rounded text-zinc-300 hover:bg-zinc-200 hover:text-zinc-600"
-                    title="Insert row below"
-                  >
-                    <Plus className="h-3 w-3 stroke-[1.5] rotate-180" />
-                  </button>
-                  {rows.length > 1 && (
-                    <button
-                      onClick={() => deleteRow(row.id)}
-                      className="flex h-5 w-5 items-center justify-center rounded text-zinc-300 hover:bg-red-50 hover:text-red-500"
-                      title="Delete row"
-                    >
-                      <Trash2 className="h-3 w-3 stroke-[1.5]" />
-                    </button>
-                  )}
                 </div>
+
+                {/* Row Context Menu */}
+                {openRowMenu === row.id && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-8 top-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl py-1.5 z-40 text-left min-w-[140px] text-xs font-normal text-zinc-700 dark:text-zinc-300 overflow-hidden"
+                  >
+                    <button
+                      onClick={() => {
+                        setOpenRowMenu(null);
+                        insertRowAbove(i);
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-905 flex items-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <span>Insert Row Above</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOpenRowMenu(null);
+                        insertRowBelow(i);
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-905 flex items-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <span>Insert Row Below</span>
+                    </button>
+                    {rows.length > 1 && (
+                      <>
+                        <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                        <button
+                          onClick={() => {
+                            setOpenRowMenu(null);
+                            deleteRow(row.id);
+                          }}
+                          className="w-full px-3 py-1.5 text-left hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-450 flex items-center gap-2 cursor-pointer transition-colors"
+                        >
+                          <span>Delete Row</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
                 <div
                   onMouseDown={(e) => handleRowResizeStart(row.id, e)}
-                  className="absolute bottom-0 left-0 right-0 h-2 cursor-row-resize z-20 hover:bg-zinc-300/30 transition-colors"
+                  onDoubleClick={() => {
+                    setRowHeights((prev) => {
+                      const next = { ...prev };
+                      delete next[row.id];
+                      return next;
+                    });
+                  }}
+                  className="absolute bottom-0 left-0 right-0 h-2 cursor-row-resize z-20 hover:bg-zinc-300/30 dark:hover:bg-zinc-750/30 transition-colors"
                   style={{ transform: 'translateY(50%)' }}
-                  title="Drag to resize row"
+                  title="Drag to resize row · Double-click to auto-fit"
                 />
               </td>
             </tr>
@@ -919,10 +1067,10 @@ export default function SpreadsheetTable({
       </table>
 
       {/* Bottom toolbar */}
-      <div className="flex items-center px-2 py-2 border-t border-zinc-100 gap-3">
+      <div className="flex items-center px-2 py-2 border-t border-zinc-105 dark:border-zinc-800 bg-white dark:bg-zinc-900 gap-3">
         <button
           onClick={addRow}
-          className="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-350 transition-colors cursor-pointer"
         >
           <Plus className="h-3.5 w-3.5 stroke-[1.5]" />
           Add Row
@@ -930,7 +1078,7 @@ export default function SpreadsheetTable({
         {selectedRows.size > 0 && (
           <button
             onClick={deleteSelectedRows}
-            className="inline-flex items-center gap-1 text-xs font-medium text-red-400 hover:text-red-600 transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-medium text-red-400 dark:text-red-500 hover:text-red-650 dark:hover:text-red-400 transition-colors cursor-pointer"
           >
             <Trash2 className="h-3.5 w-3.5 stroke-[1.5]" />
             Delete {selectedRows.size} row{selectedRows.size > 1 ? 's' : ''}

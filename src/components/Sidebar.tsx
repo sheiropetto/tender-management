@@ -107,7 +107,9 @@ export default function Sidebar() {
         <Link
           href="/"
           className={`flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-all duration-150 ${
-            pathname === "/" ? "text-zinc-900" : "text-zinc-500 hover:text-zinc-800"
+            pathname === "/" 
+              ? "text-zinc-900 dark:text-zinc-100 bg-zinc-200/50 dark:bg-zinc-700/50" 
+              : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
           }`}
         >
           <Home className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.5]" />
@@ -121,8 +123,8 @@ export default function Sidebar() {
               href="/projects"
               className={`flex flex-1 items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-all duration-150 ${
                 pathname === "/projects" || pathname.startsWith("/projects/")
-                  ? "text-zinc-900"
-                  : "text-zinc-500 hover:text-zinc-800"
+                  ? "text-zinc-900 dark:text-zinc-100 bg-zinc-200/50 dark:bg-zinc-700/50"
+                  : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
               }`}
             >
               <FolderKanban className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.5]" />
@@ -130,7 +132,7 @@ export default function Sidebar() {
             </Link>
             <button
               onClick={() => toggleExpanded("Projects")}
-              className="flex items-center justify-center h-9 w-9 mr-2 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-all"
+              className="flex items-center justify-center h-9 w-9 mr-2 rounded-full text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-all cursor-pointer"
             >
               <ChevronDown
                 className={`h-3.5 w-3.5 transition-transform duration-200 ${
@@ -146,7 +148,7 @@ export default function Sidebar() {
               {projects.length === 0 && (
                 <Link
                   href="/projects/new"
-                  className="flex items-center rounded-full pl-[46px] pr-4 py-2 text-sm text-zinc-400 hover:text-zinc-800 transition-colors"
+                  className="flex items-center rounded-full pl-[46px] pr-4 py-2 text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
                 >
                   <span className="italic">No projects yet</span>
                 </Link>
@@ -158,7 +160,7 @@ export default function Sidebar() {
                   <div key={year}>
                     <button
                       onClick={() => toggleExpanded(`year_${year}`)}
-                      className="flex w-full items-center gap-2 rounded-full pl-[46px] pr-4 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors"
+                      className="flex w-full items-center gap-2 rounded-full pl-[46px] pr-4 py-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer"
                     >
                       <ChevronDown
                         className={`h-3 w-3 transition-transform duration-200 ${
@@ -166,11 +168,11 @@ export default function Sidebar() {
                         }`}
                       />
                       <span>{year}</span>
-                      <span className="text-zinc-300">({yearChildren.length})</span>
+                      <span className="text-zinc-300 dark:text-zinc-600">({yearChildren.length})</span>
                     </button>
 
                     {isYearOpen && (
-                      <div className="space-y-0.5">
+                      <div className="space-y-0.5 border-l border-zinc-200/60 dark:border-zinc-800/60 ml-12 pl-1.5 my-1">
                         {yearChildren.map((child) => {
                           const hasEnv = child.children && child.children.length > 0;
                           const isProjOpen = expanded[child.label] ?? true;
@@ -180,48 +182,51 @@ export default function Sidebar() {
                               <Link
                                 key={child.label}
                                 href={child.href}
-                                className={`flex items-center rounded-full pl-[58px] pr-4 py-2 text-sm font-medium transition-all duration-150 ${
+                                title={child.label}
+                                className={`flex items-start rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150 ${
                                   pathname === child.href.split("?")[0]
-                                    ? "text-zinc-800"
-                                    : "text-zinc-500 hover:text-zinc-800"
+                                    ? "text-zinc-800 dark:text-zinc-100 font-semibold bg-zinc-200/30 dark:bg-zinc-700/20"
+                                    : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/30"
                                 }`}
                               >
-                                <span>{child.shortName || child.label}</span>
+                                <span className="break-words text-left">{child.shortName || child.label}</span>
                               </Link>
                             );
                           }
 
                           return (
-                            <div key={child.label}>
+                            <div key={child.label} className="space-y-0.5">
                               <button
                                 onClick={() => toggleExpanded(child.label)}
-                                className={`flex w-full items-center gap-2 rounded-full pl-[58px] pr-4 py-2 text-sm font-medium transition-all duration-150 ${
+                                title={child.label}
+                                className={`flex w-full items-start gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150 cursor-pointer ${
                                   isProjOpen
-                                    ? "text-zinc-800"
-                                    : "text-zinc-500 hover:text-zinc-800"
+                                    ? "text-zinc-800 dark:text-zinc-100 font-semibold"
+                                    : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
                                 }`}
                               >
-                                <span className="flex-1 text-left">{child.shortName || child.label}</span>
+                                <span className="flex-1 text-left break-words">{child.shortName || child.label}</span>
                                 <ChevronDown
-                                  className={`h-3 w-3 flex-shrink-0 transition-transform duration-200 ${
-                                    isProjOpen ? "text-zinc-400" : "text-zinc-400 -rotate-90"
+                                  className={`h-3.5 w-3.5 flex-shrink-0 text-zinc-400 dark:text-zinc-500 transition-transform duration-200 mt-0.5 ${
+                                    isProjOpen ? "" : "-rotate-90"
                                   }`}
                                 />
                               </button>
 
                               {isProjOpen && child.children && (
-                                <div className="space-y-0.5">
+                                <div className="space-y-0.5 border-l border-zinc-200/60 dark:border-zinc-800/60 ml-4 pl-1.5 my-0.5">
                                   {child.children.map((grandchild) => (
                                     <Link
                                       key={grandchild.label}
                                       href={grandchild.href}
-                                      className={`flex items-center rounded-full pl-[70px] pr-4 py-1.5 text-xs transition-all duration-150 ${
+                                      title={grandchild.label}
+                                      className={`flex items-start rounded-xl px-3 py-1.5 text-xs transition-all duration-150 ${
                                         pathname === grandchild.href.split("?")[0]
-                                          ? "text-zinc-800"
-                                          : "text-zinc-500 hover:text-zinc-800"
+                                          ? "text-zinc-800 dark:text-zinc-100 font-semibold bg-zinc-200/30 dark:bg-zinc-700/20"
+                                          : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/30"
                                       }`}
                                     >
-                                      <span className="leading-snug">{grandchild.label}</span>
+                                      <span className="leading-snug break-words text-left">{grandchild.label}</span>
                                     </Link>
                                   ))}
                                 </div>
@@ -242,7 +247,9 @@ export default function Sidebar() {
         <Link
           href="/archive"
           className={`flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-all duration-150 ${
-            pathname === "/archive" ? "text-zinc-900" : "text-zinc-500 hover:text-zinc-800"
+            pathname === "/archive" 
+              ? "text-zinc-900 dark:text-zinc-100 bg-zinc-200/50 dark:bg-zinc-700/50" 
+              : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
           }`}
         >
           <Archive className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.5]" />
@@ -253,7 +260,9 @@ export default function Sidebar() {
         <Link
           href="/settings"
           className={`flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-all duration-150 ${
-            pathname === "/settings" ? "text-zinc-900" : "text-zinc-500 hover:text-zinc-800"
+            pathname === "/settings" 
+              ? "text-zinc-900 dark:text-zinc-100 bg-zinc-200/50 dark:bg-zinc-700/50" 
+              : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
           }`}
         >
           <Settings className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.5]" />
