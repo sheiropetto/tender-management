@@ -260,6 +260,26 @@ export default function Sidebar() {
           <span>Settings</span>
         </Link>
       </nav>
+
+      {/* Dark mode toggle */}
+      <div className="px-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+        <button
+          onClick={() => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch(e) {}
+          }}
+          className="flex items-center gap-3 rounded-full px-4 py-3 w-full text-sm font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+        >
+          <span className="dark:hidden">
+            <svg className="h-[18px] w-[18px] stroke-[1.5] fill-none stroke-current" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+          <span className="hidden dark:inline">
+            <svg className="h-[18px] w-[18px] stroke-[1.5] fill-none stroke-current" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </span>
+          <span className="dark:hidden">Dark Mode</span>
+          <span className="hidden dark:inline">Light Mode</span>
+        </button>
+      </div>
     </aside>
   );
 }

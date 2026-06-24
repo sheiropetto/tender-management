@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Plus, Trash2, X, GripVertical, Pin, Printer } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Plus, Trash2, X, GripVertical, Pin, Printer, Search, ArrowUp, ArrowDown, Replace } from "lucide-react";
 import type { ColumnDef, SheetRow } from "@/lib/firestoreService";
 
 interface SpreadsheetTableProps {
@@ -48,6 +48,48 @@ export default function SpreadsheetTable({
   // ─── Drag reorder state ──────────────────────────────────────────────
   const dragCol = useRef<{ index: number } | null>(null);
   const dragRow = useRef<{ index: number } | null>(null);
+
+  // ─── Row selection ───────────────────────────────────────────────────
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+
+  const toggleRowSelect = (i: number) => {
+    setSelectedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRows.size === rows.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(rows.map((_, i) => i)));
+    }
+  };
+
+  const deleteSelectedRows = () => {
+    if (selectedRows.size === 0) return;
+    if (selectedRows.size === rows.length) {
+      // Clear all — keep one empty row
+      const cells: Record<string, string> = {};
+      columns.forEach((c) => (cells[c.id] = ""));
+      onRowsChange([{ id: genId(), cells }]);
+    } else {
+      const indices = Array.from(selectedRows).sort((a, b) => b - a);
+      let newRows = [...rows];
+      indices.forEach((i) => { newRows.splice(i, 1); });
+      onRowsChange(newRows);
+    }
+    setSelectedRows(new Set());
+  };
+
+  // ─── Find & Replace ──────────────────────────────────────────────────
+  const [showFind, setShowFind] = useState(false);
+  const [findText, setFindText] = useState('');
+  const [replaceText, setReplaceText] = useState('');
+  const [currentMatch, setCurrentMatch] = useState(0);
+  const findInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editingCol && editInputRef.current) {
@@ -117,6 +159,38 @@ export default function SpreadsheetTable({
     });
     setColWidths((prev) => ({ ...prev, [colId]: Math.max(80, Math.min(600, maxW)) }));
   }, [columns, rows]);
+
+  // ─── Row height resize ────────────────────────────────────────────────
+  const [rowHeights, setRowHeights] = useState<Record<string, number>>({});
+  const resizingRow = useRef<{ id: string; startY: number; startH: number } | null>(null);
+
+  const handleRowResizeStart = useCallback((rowId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const tr = (e.target as HTMLElement).closest("tr");
+    const startH = tr?.offsetHeight || 0;
+    resizingRow.current = { id: rowId, startY: e.clientY, startH };
+
+    const onMouseMove = (me: MouseEvent) => {
+      if (!resizingRow.current) return;
+      const diff = me.clientY - resizingRow.current.startY;
+      const newH = Math.max(40, resizingRow.current.startH + diff);
+      setRowHeights((prev) => ({ ...prev, [rowId]: newH }));
+    };
+
+    const onMouseUp = () => {
+      resizingRow.current = null;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+  }, []);
 
   // ─── Columns ───────────────────────────────────────────────────────────
 
@@ -277,42 +351,30 @@ export default function SpreadsheetTable({
   };
 
   const handleGlobalKeyDown = useCallback((e: KeyboardEvent) => {
+    // Ctrl+F opens find bar
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      if (!showFind) {
+        openFind();
+      } else {
+        findInputRef.current?.focus();
+        findInputRef.current?.select();
+      }
+      return;
+    }
+    // If find bar is open, F3 / Shift+F3 for next/prev
+    if (showFind && e.key === 'F3') {
+      e.preventDefault();
+      if (e.shiftKey) goToPrevMatch();
+      else goToNextMatch();
+      return;
+    }
     if (e.ctrlKey || e.metaKey) {
       if (e.key === 'c') { copySelection(); e.preventDefault(); }
       if (e.key === 'x') { cutSelection(); e.preventDefault(); }
       if (e.key === 'v') {
-        e.preventDefault();
-        navigator.clipboard.readText().then((text) => {
-          if (!selection) return;
-          const minR = Math.min(selection.sr, selection.er);
-          const minC = Math.min(selection.sc, selection.ec);
-          const lines = text.split(/\r?\n/);
-          let newCols = [...columns];
-          let newRows = [...rows];
-          lines.forEach((line, ri) => {
-            const vals = line.split("\t");
-            const rowIdx = minR + ri;
-            // Ensure row exists
-            while (newRows.length <= rowIdx) {
-              const cells: Record<string, string> = {};
-              newCols.forEach((c) => (cells[c.id] = ""));
-              newRows.push({ id: genId(), cells });
-            }
-            vals.forEach((val, ci) => {
-              const colIdx = minC + ci;
-              // Ensure column exists
-              while (newCols.length <= colIdx) {
-                const id = genId();
-                newCols.push({ id, label: `Column ${newCols.length + 1}` });
-              }
-              if (newRows[rowIdx] && newCols[colIdx]) {
-                newRows[rowIdx].cells[newCols[colIdx].id] = val;
-              }
-            });
-          });
-          onColumnsChange(newCols);
-          onRowsChange(newRows);
-        });
+        // Native paste into focused textarea handles it via onPaste
+        return;
       }
     }
     // Escape clears selection
@@ -320,7 +382,7 @@ export default function SpreadsheetTable({
       setSelection(null);
       selectAnchor.current = null;
     }
-  }, [selection, columns, rows]);
+  }, [selection, columns, rows, showFind]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleGlobalKeyDown);
@@ -432,7 +494,7 @@ export default function SpreadsheetTable({
   const autoResize = (el: HTMLTextAreaElement | null) => {
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = Math.max(36, el.scrollHeight) + 'px';
+    el.style.height = el.scrollHeight + 'px';
   };
 
   // ─── Auto-resize all textareas on rows change (initial load, paste, etc.) ─
@@ -450,10 +512,160 @@ export default function SpreadsheetTable({
     setFrozenCols((prev) => (prev === 0 ? 1 : 0));
   };
 
+  // ─── Find & Replace — logic ──────────────────────────────────────────
+  const matches = useMemo(() => {
+    if (!findText) return [];
+    const lower = findText.toLowerCase();
+    const m: { row: number; col: number }[] = [];
+    rows.forEach((row, ri) => {
+      columns.forEach((col, ci) => {
+        const val = row.cells[col.id];
+        if (val && val.toLowerCase().includes(lower)) {
+          m.push({ row: ri, col: ci });
+        }
+      });
+    });
+    return m;
+  }, [findText, rows, columns]);
+
+  const isMatchCell = (ri: number, ci: number) =>
+    matches.some((m) => m.row === ri && m.col === ci);
+
+  const isCurrentMatchCell = (ri: number, ci: number) =>
+    matches.length > 0 && matches[currentMatch % matches.length]?.row === ri &&
+    matches[currentMatch % matches.length]?.col === ci;
+
+  const goToNextMatch = () => {
+    if (matches.length === 0) return;
+    const next = (currentMatch + 1) % matches.length;
+    setCurrentMatch(next);
+    focusMatchCell(matches[next]);
+  };
+
+  const goToPrevMatch = () => {
+    if (matches.length === 0) return;
+    const prev = (currentMatch - 1 + matches.length) % matches.length;
+    setCurrentMatch(prev);
+    focusMatchCell(matches[prev]);
+  };
+
+  const focusMatchCell = (m: { row: number; col: number }) => {
+    const colId = columns[m.col]?.id;
+    const rowId = rows[m.row]?.id;
+    if (!colId || !rowId) return;
+    const ta = document.querySelector<HTMLTextAreaElement>(
+      `[data-row-id="${rowId}"][data-col-id="${colId}"]`
+    );
+    ta?.focus();
+    ta?.select();
+    ta?.scrollIntoView({ block: 'center' });
+  };
+
+  const replaceCurrent = () => {
+    if (matches.length === 0) return;
+    const m = matches[currentMatch % matches.length];
+    if (!m) return;
+    const colId = columns[m.col]?.id;
+    const row = rows[m.row];
+    if (!colId || !row) return;
+    const oldVal = row.cells[colId] || '';
+    const lower = findText.toLowerCase();
+    const idx = oldVal.toLowerCase().indexOf(lower);
+    if (idx === -1) return;
+    const newVal = oldVal.slice(0, idx) + replaceText + oldVal.slice(idx + findText.length);
+    onRowsChange(rows.map((r) =>
+      r.id === row.id ? { ...r, cells: { ...r.cells, [colId]: newVal } } : r
+    ));
+    goToNextMatch();
+  };
+
+  const replaceAll = () => {
+    if (!findText) return;
+    const lower = findText.toLowerCase();
+    let newRows = rows.map((row) => {
+      let newCells = { ...row.cells };
+      columns.forEach((col) => {
+        const val = newCells[col.id];
+        if (val) {
+          let replaced = val;
+          let idx = replaced.toLowerCase().indexOf(lower);
+          while (idx !== -1) {
+            replaced = replaced.slice(0, idx) + replaceText + replaced.slice(idx + findText.length);
+            idx = replaced.toLowerCase().indexOf(lower, idx + replaceText.length);
+          }
+          if (replaced !== val) newCells[col.id] = replaced;
+        }
+      });
+      return { ...row, cells: newCells };
+    });
+    onRowsChange(newRows);
+  };
+
+  const openFind = () => {
+    setShowFind(true);
+    setFindText('');
+    setReplaceText('');
+    setCurrentMatch(0);
+    setTimeout(() => findInputRef.current?.focus(), 50);
+  };
+
+  const closeFind = () => {
+    setShowFind(false);
+    setFindText('');
+    setCurrentMatch(0);
+  };
+
   // ─── Render ────────────────────────────────────────────────────────────
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white relative">
+      {/* ─── Find & Replace bar ──────────────────────────────────────── */}
+      {showFind && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-200 bg-zinc-50/80 text-xs">
+          <Search className="h-3.5 w-3.5 text-zinc-400 stroke-[1.5]" />
+          <input
+            ref={findInputRef}
+            type="text"
+            value={findText}
+            onChange={(e) => { setFindText(e.target.value); setCurrentMatch(0); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.shiftKey ? goToPrevMatch() : goToNextMatch(); }
+              if (e.key === 'Escape') closeFind();
+            }}
+            placeholder="Find in sheet..."
+            className="w-36 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 outline-none focus:border-zinc-400"
+          />
+          <span className="text-zinc-400 min-w-[4rem]">
+            {matches.length > 0
+              ? `${(currentMatch % matches.length) + 1} of ${matches.length}`
+              : findText ? 'No results' : ''}
+          </span>
+          <button onClick={goToPrevMatch} className="p-0.5 text-zinc-400 hover:text-zinc-600 rounded disabled:opacity-30" disabled={matches.length === 0} title="Previous (Shift+Enter)">
+            <ArrowUp className="h-3 w-3 stroke-[1.5]" />
+          </button>
+          <button onClick={goToNextMatch} className="p-0.5 text-zinc-400 hover:text-zinc-600 rounded disabled:opacity-30" disabled={matches.length === 0} title="Next (Enter)">
+            <ArrowDown className="h-3 w-3 stroke-[1.5]" />
+          </button>
+          <span className="w-px h-4 bg-zinc-200 mx-1" />
+          <input
+            type="text"
+            value={replaceText}
+            onChange={(e) => setReplaceText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') replaceCurrent(); }}
+            placeholder="Replace with..."
+            className="w-28 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 outline-none focus:border-zinc-400"
+          />
+          <button onClick={replaceCurrent} className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-200 transition-colors disabled:opacity-30" disabled={matches.length === 0}>
+            Replace
+          </button>
+          <button onClick={replaceAll} className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-200 transition-colors disabled:opacity-30" disabled={!findText}>
+            All
+          </button>
+          <button onClick={closeFind} className="ml-auto p-0.5 text-zinc-300 hover:text-zinc-500 rounded" title="Close (Escape)">
+            <X className="h-3.5 w-3.5 stroke-[1.5]" />
+          </button>
+        </div>
+      )}
       <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
         {/* ─── Header ─────────────────────────────────────────────────── */}
         <thead>
@@ -462,7 +674,13 @@ export default function SpreadsheetTable({
               className={`w-10 px-1 py-2 text-xs text-zinc-400 font-medium ${frozenCols > 0 ? 'sticky left-0 z-20 bg-zinc-50' : ''}`}
             >
               <div className="flex items-center gap-1">
-                <span>#</span>
+                <input
+                  type="checkbox"
+                  checked={rows.length > 0 && selectedRows.size === rows.length}
+                  onChange={toggleSelectAll}
+                  className="accent-zinc-600 cursor-pointer w-3 h-3"
+                  title={selectedRows.size === rows.length ? 'Deselect all' : 'Select all'}
+                />
                 <button
                   onClick={toggleFrozen}
                   className={`text-[9px] px-1 rounded transition-colors ${frozenCols > 0 ? 'text-zinc-600 bg-zinc-200' : 'text-zinc-300 hover:text-zinc-500'}`}
@@ -575,13 +793,14 @@ export default function SpreadsheetTable({
             <tr
               key={row.id}
               className="border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50/50 group"
+              style={{ height: rowHeights[row.id] || undefined }}
               draggable
               onDragStart={() => handleRowDragStart(i)}
               onDragOver={(e) => handleRowDragOver(e, i)}
               onDragEnd={handleRowDragEnd}
             >
               <td
-                className={`px-1 py-2 text-xs text-zinc-400 align-top pt-3 cursor-grab ${
+                className={`px-1 py-2 text-xs text-zinc-400 align-middle cursor-grab ${
                   frozenCols > 0 ? 'sticky left-0 z-10 bg-white group-hover:bg-zinc-50/50' : ''
                 }`}
                 style={{ width: 40 }}
@@ -594,10 +813,10 @@ export default function SpreadsheetTable({
                 return (
                 <td
                   key={col.id}
-                  className={`border-r border-zinc-100 last:border-r-0 px-2 py-1 ${col.printHidden ? 'print:hidden opacity-30' : ''} ${
-                    sel ? 'bg-zinc-100' : ''
+                  className={`border-r border-zinc-100 last:border-r-0 px-2 py-1 align-middle ${col.printHidden ? 'print:hidden opacity-30' : ''} ${
+                    sel ? 'bg-zinc-100' : isCurrentMatchCell(i, ci) ? 'bg-amber-200' : isMatchCell(i, ci) ? 'bg-amber-50' : ''
                   } ${
-                    frozenCols > 0 && ci < frozenCols ? `sticky z-10 ${sel ? 'bg-zinc-100' : 'bg-white group-hover:bg-zinc-50/50'}` : ''
+                    frozenCols > 0 && ci < frozenCols ? `sticky z-10 ${sel ? 'bg-zinc-100' : isCurrentMatchCell(i, ci) ? 'bg-amber-200' : isMatchCell(i, ci) ? 'bg-amber-50' : 'bg-white group-hover:bg-zinc-50/50'}` : ''
                   }`}
                   style={{
                     width: colWidths[col.id] || undefined,
@@ -654,14 +873,14 @@ export default function SpreadsheetTable({
                     data-row-id={row.id}
                     data-col-id={col.id}
                     rows={1}
-                    className={`w-full resize-none border-0 bg-transparent px-1 py-1.5 text-sm outline-none focus:ring-0 placeholder-zinc-300 overflow-hidden break-words whitespace-pre-wrap ${numeric ? 'text-right text-zinc-700' : 'text-zinc-700'}`}
+                    className={`w-full resize-none border-0 bg-transparent px-1 py-1.5 text-sm outline-none focus:ring-0 placeholder-zinc-300 overflow-hidden break-words whitespace-pre-wrap align-middle ${numeric ? 'text-right text-zinc-700' : 'text-zinc-700'}`}
                     placeholder="—"
                   />
                 </td>
                 );
               })}
               {/* Row actions */}
-              <td className="w-10 px-1 py-1 align-top pt-2.5">
+              <td className="w-10 px-1 py-1 align-middle relative">
                 <div className="flex flex-col items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => insertRowAbove(i)}
@@ -687,6 +906,12 @@ export default function SpreadsheetTable({
                     </button>
                   )}
                 </div>
+                <div
+                  onMouseDown={(e) => handleRowResizeStart(row.id, e)}
+                  className="absolute bottom-0 left-0 right-0 h-2 cursor-row-resize z-20 hover:bg-zinc-300/30 transition-colors"
+                  style={{ transform: 'translateY(50%)' }}
+                  title="Drag to resize row"
+                />
               </td>
             </tr>
           ))}
@@ -694,7 +919,7 @@ export default function SpreadsheetTable({
       </table>
 
       {/* Bottom toolbar */}
-      <div className="flex items-center px-2 py-2 border-t border-zinc-100">
+      <div className="flex items-center px-2 py-2 border-t border-zinc-100 gap-3">
         <button
           onClick={addRow}
           className="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors"
@@ -702,6 +927,15 @@ export default function SpreadsheetTable({
           <Plus className="h-3.5 w-3.5 stroke-[1.5]" />
           Add Row
         </button>
+        {selectedRows.size > 0 && (
+          <button
+            onClick={deleteSelectedRows}
+            className="inline-flex items-center gap-1 text-xs font-medium text-red-400 hover:text-red-600 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5 stroke-[1.5]" />
+            Delete {selectedRows.size} row{selectedRows.size > 1 ? 's' : ''}
+          </button>
+        )}
       </div>
     </div>
   );

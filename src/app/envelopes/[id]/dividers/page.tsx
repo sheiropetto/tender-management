@@ -133,19 +133,14 @@ export default function DividersPage() {
         <div className="divider-frame" style={{ borderWidth: borderPx }}>
           <div className="divider-content">
             <div className="divider-half-top">
-              <div className="divider-section">
-                {project?.name && (
-                  <>
-                    <p className="divider-text divider-text-project">{project.name}</p>
-                    {project.refNumber && (
-                      <p className="divider-text divider-text-ref">{project.refNumber}</p>
-                    )}
-                  </>
-                )}
-              </div>
-              <div className="divider-section">
-                <p className="divider-text divider-text-envelope">{envelope!.title}</p>
-              </div>
+              {project?.name && (
+                <>
+                  <p className="divider-text divider-text-project">{project.name}</p>
+                  {project.refNumber && (
+                    <p className="divider-text divider-text-ref">{project.refNumber}</p>
+                  )}
+                </>
+              )}
             </div>
             <div className="divider-half-bottom">
               {refCol && row.cells[refCol.id] && (

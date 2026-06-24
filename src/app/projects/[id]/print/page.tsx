@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, FileDown, FileText, BookOpen, MapPin, Shield, LayoutTemplate } from "lucide-react";
+import { ArrowLeft, Loader2, FileDown, FileText, BookOpen, MapPin, Shield, LayoutTemplate, List } from "lucide-react";
 import { getProject, getEnvelopes, type Project, type Envelope } from "@/lib/firestoreService";
 
 const printOptions = [
@@ -38,6 +38,14 @@ const printOptions = [
     icon: MapPin,
     href: "print/address-labels",
     size: "A4 Landscape",
+  },
+  {
+    id: "table-of-contents",
+    label: "Table of Contents",
+    description: "Per-envelope TOC with series no., appendix, title, and color tags",
+    icon: List,
+    href: "print/table-of-contents",
+    size: "A4 Portrait",
   },
 ];
 

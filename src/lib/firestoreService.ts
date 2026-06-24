@@ -48,6 +48,7 @@ export interface ColumnDef {
 export interface SheetRow {
   id: string;
   cells: Record<string, string>;
+  tagColor?: string;
 }
 
 export interface Envelope {
