@@ -210,12 +210,25 @@ export default function DividersPage() {
         @page { size: A4 portrait; margin: 0; }
         @media print {
           body > div:not(#__print_portal) { display: none !important; }
+          .divider-page-print-wrapper {
+            page-break-before: avoid !important;
+            page-break-after: always !important;
+          }
+          .divider-page-print-wrapper:last-of-type {
+            page-break-after: avoid !important;
+          }
+          body .divider-page {
+            page-break-before: avoid !important;
+            page-break-after: avoid !important;
+          }
         }
       `}</style>
       {rows
         .filter((row) => !excludedRows.has(row.id))
         .map((row) => (
-          <div key={row.id}>{renderDividerPage(row)}</div>
+          <div key={row.id} className="divider-page-print-wrapper">
+            {renderDividerPage(row)}
+          </div>
         ))}
     </div>
   );

@@ -90,7 +90,7 @@ export default function SpreadsheetTable({
       onRowsChange([{ id: genId(), cells }]);
     } else {
       const indices = Array.from(selectedRows).sort((a, b) => b - a);
-      let newRows = [...rows];
+      const newRows = [...rows];
       indices.forEach((i) => { newRows.splice(i, 1); });
       onRowsChange(newRows);
     }
@@ -351,7 +351,7 @@ export default function SpreadsheetTable({
     const maxR = Math.max(selection.sr, selection.er);
     const minC = Math.min(selection.sc, selection.ec);
     const maxC = Math.max(selection.sc, selection.ec);
-    let newRows = [...rows];
+    const newRows = [...rows];
     for (let r = minR; r <= maxR; r++) {
       for (let c = minC; c <= maxC; c++) {
         const colId = columns[c]?.id;
@@ -625,8 +625,8 @@ export default function SpreadsheetTable({
   const replaceAll = () => {
     if (!findText) return;
     const lower = findText.toLowerCase();
-    let newRows = rows.map((row) => {
-      let newCells = { ...row.cells };
+    const newRows = rows.map((row) => {
+      const newCells = { ...row.cells };
       columns.forEach((col) => {
         const val = newCells[col.id];
         if (val) {

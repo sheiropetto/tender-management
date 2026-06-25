@@ -244,22 +244,35 @@ export default function TOCPrintPage() {
           .toc-print-container {
             display: block !important;
             background: white !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            min-height: auto !important;
-            height: auto !important;
           }
+          
+          /* The wrapper controls the page break */
           .toc-print-page {
             display: block !important;
-            page-break-after: always !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
+            width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
+            page-break-before: always !important;
+            page-break-inside: avoid !important;
+          }
+          
+          /* No break on the first wrapper */
+          .toc-print-page:first-of-type {
+            page-break-before: avoid !important;
+          }
+          
+          /* Override the global .toc-page style to NEVER break here, 
+             since the wrapper handles it. Use higher specificity. */
+          body .toc-print-page .toc-page,
+          body .toc-page {
+            page-break-before: avoid !important;
+            page-break-after: avoid !important;
+            margin: 0 !important;
             box-shadow: none !important;
             border: none !important;
-            width: 210mm !important;
-            height: 297mm !important;
+            break-inside: avoid !important;
+            height: auto !important;
+            min-height: 100%;
           }
         }
         .no-print-top-bar {

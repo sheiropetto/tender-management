@@ -190,6 +190,12 @@ body {
     filter: none !important;
     box-shadow: none !important;
   }
+  .divider-page {
+    width: 100% !important;
+    height: 100vh !important;
+    max-height: 296mm !important;
+    overflow: hidden !important;
+  }
 }
 
 .divider-page {
@@ -198,7 +204,7 @@ body {
   justify-content: center;
   width: 210mm;
   height: 297mm;
-  page-break-before: always;
+  page-break-before: avoid;
   background: white;
   box-sizing: border-box;
   margin: 0 auto;
@@ -293,7 +299,7 @@ body {
 .toc-page {
   width: 210mm;
   height: 297mm;
-  page-break-before: always;
+  page-break-before: avoid;
   background: white;
   box-sizing: border-box;
   margin: 0 auto;
@@ -430,6 +436,7 @@ body {
 
 @media print {
   html, body {
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     background: white !important;
@@ -438,15 +445,18 @@ body {
   }
   .toc-page {
     margin: 0 auto !important;
-    width: 210mm !important;
-    height: 297mm !important;
-    page-break-before: always !important;
+    width: 100% !important;
+    height: 100vh !important;
+    max-height: 296mm !important;
+    page-break-before: avoid !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    overflow: visible !important;
+    overflow: hidden !important;
   }
   .toc-frame {
+    height: calc(100% - 30mm) !important;
+    margin: 15mm auto !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
