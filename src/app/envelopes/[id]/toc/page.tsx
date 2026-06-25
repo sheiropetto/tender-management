@@ -89,59 +89,44 @@ export default function TOCPage() {
       .finally(() => setLoading(false));
   }, [params.id, router]);
 
-  // Portal container
-  useEffect(() => {
-    const container = document.createElement("div");
-    container.id = "__toc_portal";
-    document.body.insertBefore(container, document.body.firstChild);
-    portalRef.current = container;
-    setMounted(true);
-
-    const aside = document.querySelector("aside");
-    const origDisplay = aside?.style.display || "";
-    document.querySelectorAll("aside, [class*='sidebar'], [class*='Sidebar']")
-      .forEach(el => { (el as HTMLElement).style.display = "none"; });
-    document.body.style.background = "white";
-    document.body.style.display = "block";
-    document.body.style.height = "auto";
-    document.body.style.padding = "0";
-    document.body.style.margin = "0";
-
-    const allDivs = document.querySelectorAll("body > div");
-    allDivs.forEach(div => {
-      if (div.id !== "__toc_portal") {
-        (div as HTMLElement).style.display = "none";
-      }
-    });
-    const mainEl = document.querySelector("main") as HTMLElement;
-    if (mainEl) mainEl.style.display = "none";
-
-    return () => {
-      if (aside) aside.style.display = origDisplay;
-      document.body.style.cssText = "";
-      allDivs.forEach(div => { (div as HTMLElement).style.cssText = ""; });
-      if (mainEl) mainEl.style.cssText = "";
-      if (container.parentNode) container.parentNode.removeChild(container);
-      portalRef.current = null;
-      setMounted(false);
-    };
-  }, []);
-
   const handlePrint = useCallback(() => {
-    setShowPrintPreview(true);
-    setTimeout(() => { window.print(); }, 100);
-  }, []);
-
-  const handleAfterPrint = useCallback(() => {
-    setShowPrintPreview(false);
-  }, []);
-
-  useEffect(() => {
-    if (showPrintPreview) {
-      window.addEventListener("afterprint", handleAfterPrint);
-      return () => window.removeEventListener("afterprint", handleAfterPrint);
-    }
-  }, [showPrintPreview, handleAfterPrint]);
+    if (!envelope?.id) return;
+    const paramsQuery = new URLSearchParams({
+      borderPx: borderPx.toString(),
+      rowsPerPage: rowsPerPage.toString(),
+      density,
+      headerAlign,
+      showProjDetails: showProjDetails.toString(),
+      showRefNumber: showRefNumber.toString(),
+      showEnvTitle: showEnvTitle.toString(),
+      showHeaders: showHeaders.toString(),
+      showTagColumn: showTagColumn.toString(),
+      excludedRows: Array.from(excludedRows).join(","),
+      searchQuery,
+      colTitleNo,
+      colTitleApp,
+      colTitleTitle,
+      colTitleTag,
+    });
+    window.open(`/envelopes/${envelope.id}/toc/print?${paramsQuery.toString()}`, "_blank");
+  }, [
+    envelope?.id,
+    borderPx,
+    rowsPerPage,
+    density,
+    headerAlign,
+    showProjDetails,
+    showRefNumber,
+    showEnvTitle,
+    showHeaders,
+    showTagColumn,
+    excludedRows,
+    searchQuery,
+    colTitleNo,
+    colTitleApp,
+    colTitleTitle,
+    colTitleTag,
+  ]);
 
   const updateTagColor = (rowId: string, color: string) => {
     setRows(prev => prev.map(r => r.id === rowId ? { ...r, tagColor: color } : r));
@@ -168,8 +153,12 @@ export default function TOCPage() {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     const refVal = (refCol && row.cells[refCol.id] || "").toLowerCase();
-    const descVal = (descCol && row.cells[descCol.id] || "").toLowerCase();
-    return refVal.includes(q) || descVal.includes(q);
+    if (refVal.includes(q)) return true;
+    for (const col of columns.slice(1)) {
+      const val = (row.cells[col.id] || "").toLowerCase();
+      if (val.includes(q)) return true;
+    }
+    return false;
   });
 
   const totalPages = Math.max(1, Math.ceil(activeRows.length / rowsPerPage));
@@ -198,13 +187,15 @@ export default function TOCPage() {
                 <p className="toc-ref" style={{ margin: refMargin, width: '100%' }}>{project.refNumber}</p>
               )}
               <h1 className="toc-title">
-                Table of Contents{pageIndex > 0 ? " (Continued)" : ""}
+                {totalPagesCount > 1 
+                  ? `TABLE OF CONTENTS (${pageIndex + 1} OF ${totalPagesCount})` 
+                  : "TABLE OF CONTENTS"}
               </h1>
               {showEnvTitle && envelope?.title && (
                 <p className="toc-envelope">{envelope.title}</p>
               )}
             </div>
-
+ 
             {/* Table */}
             <table className="toc-table">
               {showHeaders && (
@@ -222,7 +213,25 @@ export default function TOCPage() {
                   <tr key={row.id} className={`toc-tr toc-tr-${density}`}>
                     <td className="toc-td toc-td-no">{(pageIndex * rowsPerPage) + i + 1}</td>
                     <td className="toc-td toc-td-app">{refCol ? row.cells[refCol.id] || "" : ""}</td>
-                    <td className="toc-td toc-td-title">{descCol ? row.cells[descCol.id] || "" : ""}</td>
+                    <td className="toc-td toc-td-title">
+                      <div className="font-semibold">{descCol ? row.cells[descCol.id] || "" : ""}</div>
+                      {columns.slice(2).map((col) => {
+                        const cellVal = row.cells[col.id];
+                        if (!cellVal) return null;
+                        if (col.printHidden) {
+                          return (
+                            <div key={col.id} className="text-zinc-500 text-[10pt] mt-1 leading-normal font-normal invisible select-none">
+                              {cellVal}
+                            </div>
+                          );
+                        }
+                        return (
+                          <div key={col.id} className="text-zinc-500 text-[10pt] mt-1 leading-normal font-normal">
+                            <span>{cellVal}</span>
+                          </div>
+                        );
+                      })}
+                    </td>
                     {showTagColumn && (
                       <td className="toc-td toc-td-tag">
                         {row.tagColor && (
@@ -240,26 +249,7 @@ export default function TOCPage() {
     );
   }
 
-  // ─── Print version ──────────────────────────────────────────────
-  const printContent = showPrintPreview && (
-    <div style={{ background: "white" }}>
-      <style>{`
-        @page { size: A4 portrait; margin: 0; }
-        @media print {
-          body > div:not(#__toc_portal) { display: none !important; }
-        }
-      `}</style>
-      {Array.from({ length: totalPages }).map((_, pageIndex) => {
-        const start = pageIndex * rowsPerPage;
-        const pageRows = activeRows.slice(start, start + rowsPerPage);
-        return (
-          <div key={pageIndex}>
-            {renderTOCPage(pageIndex, pageRows, totalPages)}
-          </div>
-        );
-      })}
-    </div>
-  );
+
 
   // ─── Screen view ────────────────────────────────────────────────
   const screenContent = (
@@ -335,7 +325,7 @@ export default function TOCPage() {
                   onChange={(e) => setRowsPerPage(parseInt(e.target.value, 10))}
                   className="rounded-full border border-zinc-300 bg-white px-3 py-1 outline-none cursor-pointer text-xs font-semibold text-zinc-700 hover:border-zinc-400"
                 >
-                  {[5, 8, 10, 12, 15, 18, 20, 22, 25, 30].map(n => (
+                  {[3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 20, 22, 25, 30].map(n => (
                     <option key={n} value={n}>{n} rows</option>
                   ))}
                 </select>
@@ -560,7 +550,19 @@ export default function TOCPage() {
                       </td>
                       <td className="px-3 py-2.5 text-zinc-400 text-center font-medium">{i + 1}</td>
                       <td className="px-3 py-2.5 text-zinc-700 font-semibold">{refCol ? row.cells[refCol.id] || "" : ""}</td>
-                      <td className="px-3 py-2.5 text-zinc-600 font-medium">{descCol ? row.cells[descCol.id] || "" : ""}</td>
+                      <td className="px-3 py-2.5 text-zinc-600 font-medium">
+                        <div className="font-semibold">{descCol ? row.cells[descCol.id] || "" : ""}</div>
+                        {columns.slice(2).map((col) => {
+                          const val = row.cells[col.id];
+                          if (!val) return null;
+                          return (
+                            <div key={col.id} className="text-zinc-400 text-xs mt-0.5 font-normal">
+                              <span className="font-medium">{col.label}: </span>
+                              <span>{val}</span>
+                            </div>
+                          );
+                        })}
+                      </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center justify-center gap-1">
                           {TAG_COLORS.map((tc) => (
@@ -590,7 +592,7 @@ export default function TOCPage() {
     </div>
   );
 
-  if (loading || !mounted) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-5 w-5 animate-spin text-zinc-300 stroke-[1.5]" />
@@ -600,10 +602,5 @@ export default function TOCPage() {
 
   if (!envelope) return null;
 
-  return (
-    <>
-      {!showPrintPreview && portalRef.current && createPortal(screenContent, portalRef.current)}
-      {showPrintPreview && portalRef.current && createPortal(printContent!, portalRef.current)}
-    </>
-  );
+  return screenContent;
 }

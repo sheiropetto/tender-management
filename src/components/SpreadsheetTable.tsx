@@ -912,7 +912,9 @@ export default function SpreadsheetTable({
             >
               <td
                 className={`relative px-1 py-2 text-xs text-zinc-400 dark:text-zinc-500 align-middle cursor-grab ${
-                  frozenCols > 0 ? 'sticky left-0 z-10 bg-white dark:bg-zinc-900 group-hover:bg-zinc-50/50 dark:group-hover:bg-zinc-800/30' : ''
+                  frozenCols > 0 ? 'sticky left-0 bg-white dark:bg-zinc-900 group-hover:bg-zinc-50/50 dark:group-hover:bg-zinc-800/30' : ''
+                } ${
+                  openRowMenu === row.id ? 'z-30' : 'z-10'
                 }`}
                 style={{ width: 40 }}
               >
