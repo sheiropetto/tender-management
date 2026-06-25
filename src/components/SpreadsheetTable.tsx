@@ -911,12 +911,80 @@ export default function SpreadsheetTable({
               onDragEnd={handleRowDragEnd}
             >
               <td
-                className={`px-1 py-2 text-xs text-zinc-400 dark:text-zinc-500 align-middle cursor-grab ${
+                className={`relative px-1 py-2 text-xs text-zinc-400 dark:text-zinc-500 align-middle cursor-grab ${
                   frozenCols > 0 ? 'sticky left-0 z-10 bg-white dark:bg-zinc-900 group-hover:bg-zinc-50/50 dark:group-hover:bg-zinc-800/30' : ''
                 }`}
                 style={{ width: 40 }}
               >
-                {i + 1}
+                {/* Row number: visible by default, hidden on hover if menu is not open */}
+                <span className={`select-none transition-opacity duration-150 ${
+                  openRowMenu === row.id ? 'opacity-0' : 'group-hover:opacity-0'
+                }`}>
+                  {i + 1}
+                </span>
+
+                {/* 3-dots button: visible on hover or when menu is open */}
+                <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${
+                  openRowMenu === row.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                }`}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenRowMenu(openRowMenu === row.id ? null : row.id);
+                    }}
+                    className={`h-6 w-6 flex items-center justify-center rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-650 dark:hover:text-zinc-300 cursor-pointer ${
+                      openRowMenu === row.id ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300' : ''
+                    }`}
+                    title="Row options"
+                  >
+                    <MoreVertical className="h-3.5 w-3.5 stroke-[1.5]" />
+                  </button>
+                </div>
+
+                {/* Row Context Menu */}
+                {openRowMenu === row.id && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute left-[36px] top-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl py-1.5 z-40 text-left min-w-[140px] text-xs font-normal text-zinc-700 dark:text-zinc-300 overflow-hidden"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenRowMenu(null);
+                        insertRowAbove(i);
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-905 flex items-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <span>Insert Row Above</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenRowMenu(null);
+                        insertRowBelow(i);
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-905 flex items-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <span>Insert Row Below</span>
+                    </button>
+                    {rows.length > 1 && (
+                      <>
+                        <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenRowMenu(null);
+                            deleteRow(row.id);
+                          }}
+                          className="w-full px-3 py-1.5 text-left hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-450 flex items-center gap-2 cursor-pointer transition-colors"
+                        >
+                          <span>Delete Row</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </td>
               {columns.map((col, ci) => {
                 const sel = isSelected(i, ci);
@@ -990,63 +1058,11 @@ export default function SpreadsheetTable({
                 </td>
                 );
               })}
-              {/* Row actions */}
-              <td className="w-10 px-1 py-1 align-middle relative">
-                <div className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenRowMenu(openRowMenu === row.id ? null : row.id);
-                    }}
-                    className={`h-6 w-6 flex items-center justify-center rounded-md hover:bg-zinc-200/60 dark:hover:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-350 transition-all cursor-pointer ${
-                      openRowMenu === row.id ? 'opacity-100 bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300' : ''
-                    }`}
-                    title="Row options"
-                  >
-                    <MoreVertical className="h-3.5 w-3.5 stroke-[1.5]" />
-                  </button>
-                </div>
-
-                {/* Row Context Menu */}
-                {openRowMenu === row.id && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute right-8 top-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl py-1.5 z-40 text-left min-w-[140px] text-xs font-normal text-zinc-700 dark:text-zinc-300 overflow-hidden"
-                  >
-                    <button
-                      onClick={() => {
-                        setOpenRowMenu(null);
-                        insertRowAbove(i);
-                      }}
-                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-905 flex items-center gap-2 cursor-pointer transition-colors"
-                    >
-                      <span>Insert Row Above</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setOpenRowMenu(null);
-                        insertRowBelow(i);
-                      }}
-                      className="w-full px-3 py-1.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-905 flex items-center gap-2 cursor-pointer transition-colors"
-                    >
-                      <span>Insert Row Below</span>
-                    </button>
-                    {rows.length > 1 && (
-                      <>
-                        <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-                        <button
-                          onClick={() => {
-                            setOpenRowMenu(null);
-                            deleteRow(row.id);
-                          }}
-                          className="w-full px-3 py-1.5 text-left hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-450 flex items-center gap-2 cursor-pointer transition-colors"
-                        >
-                          <span>Delete Row</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
+              {/* Row resize handle cell aligned with "Add column" header */}
+              <td 
+                className="w-10 px-1 py-1 align-middle relative group-hover:bg-zinc-50/50 dark:group-hover:bg-zinc-800/30"
+                style={{ width: 40 }}
+              >
                 <div
                   onMouseDown={(e) => handleRowResizeStart(row.id, e)}
                   onDoubleClick={() => {
