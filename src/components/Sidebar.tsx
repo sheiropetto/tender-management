@@ -24,6 +24,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [projects, setProjects] = useState<Project[]>([]);
   const [envelopesMap, setEnvelopesMap] = useState<Record<string, Envelope[]>>({});
+  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     Projects: true,
   });
@@ -34,13 +35,15 @@ export default function Sidebar() {
 
   async function loadProjects() {
     try {
+      setLoading(true);
       const projs = await getProjects();
-      setProjects(projs);
+      const activeProjs = projs.filter(p => !p.archived);
+      setProjects(activeProjs);
 
-      // Fetch envelopes for each project
+      // Fetch envelopes for each active project
       const envMap: Record<string, Envelope[]> = {};
       await Promise.all(
-        projs.map(async (p) => {
+        activeProjs.map(async (p) => {
           if (p.hasEnvelopes && p.id) {
             const envs = await getEnvelopes(p.id);
             envMap[p.id!] = envs;
@@ -50,6 +53,8 @@ export default function Sidebar() {
       setEnvelopesMap(envMap);
     } catch (err) {
       console.error("Failed to load sidebar data:", err);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -92,7 +97,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="flex w-[248px] flex-col py-8 pl-5 pr-3 select-none">
+    <aside className="flex w-[248px] flex-col py-8 pl-5 pr-3 select-none overflow-y-auto">
       {/* Menu Header */}
       <div className="flex items-center gap-2 px-4 pb-7">
         <Star className="h-3.5 w-3.5 text-zinc-400" />
@@ -145,14 +150,18 @@ export default function Sidebar() {
           {/* Dynamic project list grouped by year */}
           {expanded.Projects && (
             <div className="space-y-1">
-              {projects.length === 0 && (
+              {loading ? (
+                <div className="flex items-center pl-[46px] py-2">
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500 animate-pulse">Loading...</span>
+                </div>
+              ) : projects.length === 0 ? (
                 <Link
                   href="/projects/new"
                   className="flex items-center rounded-full pl-[46px] pr-4 py-2 text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
                 >
                   <span className="italic">No projects yet</span>
                 </Link>
-              )}
+              ) : null}
               {sortedYears.map((year) => {
                 const isYearOpen = expanded[`year_${year}`] ?? true;
                 const yearChildren = yearGroups[year];
@@ -175,7 +184,7 @@ export default function Sidebar() {
                       <div className="space-y-0.5 border-l border-zinc-200/60 dark:border-zinc-800/60 ml-12 pl-1.5 my-1">
                         {yearChildren.map((child) => {
                           const hasEnv = child.children && child.children.length > 0;
-                          const isProjOpen = expanded[child.label] ?? true;
+                          const isProjOpen = expanded[child.label] ?? false;
 
                           if (!hasEnv) {
                             return (

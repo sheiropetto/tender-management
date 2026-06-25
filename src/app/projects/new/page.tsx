@@ -6,6 +6,23 @@ import Link from "next/link";
 import { ArrowLeft, Plus, Trash2, Save, Loader2, Sparkles } from "lucide-react";
 import { createProject, createProjectWithEnvelopes } from "@/lib/firestoreService";
 import AIUpload from "@/components/AIUpload";
+import CustomSelect, { type SelectOption } from "@/components/CustomSelect";
+import AutoResizeTextarea from "@/components/AutoResizeTextarea";
+
+const STATUS_OPTIONS: SelectOption[] = [
+  { value: "draft", label: "Draft" },
+  { value: "submitted", label: "Submitted" },
+  { value: "awarded", label: "Awarded" },
+  { value: "lost", label: "Lost" },
+];
+
+const CATEGORY_OPTIONS: SelectOption[] = [
+  { value: "infrastructure", label: "Infrastructure" },
+  { value: "consultancy", label: "Consultancy" },
+  { value: "supply", label: "Supply & Delivery" },
+  { value: "services", label: "Services" },
+  { value: "other", label: "Other" },
+];
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -122,26 +139,40 @@ export default function NewProjectPage() {
       {/* AI Auto-Fill */}
       <div className="mb-6">
         <AIUpload onDataExtracted={(data) => {
-          if (data.name) updateForm("name", data.name);
-          if (data.shortName) updateForm("shortName", data.shortName);
-          if (data.refNumber) updateForm("refNumber", data.refNumber);
-          if (data.clientName) updateForm("clientName", data.clientName);
-          if (data.submissionDate) updateForm("submissionDate", data.submissionDate);
-          if (data.submissionTime) updateForm("submissionTime", data.submissionTime);
-          if (data.submissionAddress) updateForm("submissionAddress", data.submissionAddress);
-          if (data.budget) updateForm("budget", data.budget);
-          if (data.category) updateForm("category", data.category);
-          if (data.contactPersonName) updateForm("contactPersonName", data.contactPersonName);
-          if (data.contactPersonPhone) updateForm("contactPersonPhone", data.contactPersonPhone);
-          if (data.contactPersonEmail) updateForm("contactPersonEmail", data.contactPersonEmail);
-          if (data.clientRefNumber) updateForm("clientRefNumber", data.clientRefNumber);
-          if (data.description) updateForm("description", data.description);
+          const clean = (val: any) => {
+            if (val === null || val === undefined) return "-";
+            const str = String(val).trim();
+            if (str === "" || str.toLowerCase() === "null") return "-";
+            return str;
+          };
+          
+          if (data.name) updateForm("name", clean(data.name));
+          if (data.shortName) updateForm("shortName", clean(data.shortName));
+          if (data.refNumber) updateForm("refNumber", clean(data.refNumber));
+          if (data.clientName) updateForm("clientName", clean(data.clientName));
+          if (data.submissionDate) updateForm("submissionDate", clean(data.submissionDate));
+          if (data.submissionTime) updateForm("submissionTime", clean(data.submissionTime));
+          if (data.submissionAddress) updateForm("submissionAddress", clean(data.submissionAddress));
+          if (data.budget) updateForm("budget", clean(data.budget));
+          if (data.category) updateForm("category", clean(data.category));
+          if (data.contactPersonName) updateForm("contactPersonName", clean(data.contactPersonName));
+          if (data.contactPersonPhone) updateForm("contactPersonPhone", clean(data.contactPersonPhone));
+          if (data.contactPersonEmail) updateForm("contactPersonEmail", clean(data.contactPersonEmail));
+          if (data.clientRefNumber) updateForm("clientRefNumber", clean(data.clientRefNumber));
+          if (data.description) updateForm("description", clean(data.description));
+          
           // Auto-create envelopes from AI
           if (data.hasEnvelopes && data.envelopes?.length) {
             setHasEnvelopes(true);
-            setEnvelopes(data.envelopes.map((title: string, i: number) => ({
-              title: `Envelope ${i + 1}: ${title.replace(/^Envelope \d+:\s*/i, "")}`,
-            })));
+            setEnvelopes(data.envelopes.map((title: string, i: number) => {
+              const cleanTitle = title
+                .replace(/^Envelope\s+(\d+|[IVXLCDMivxlcdm]+)\s*[:-]\s*/i, "")
+                .replace(/^\s*(\d+|[IVXLCDMivxlcdm]+)\s*[:-]\s*/i, "")
+                .trim();
+              return {
+                title: `Envelope ${i + 1}: ${cleanTitle}`,
+              };
+            }));
           }
         }} />
       </div>
@@ -152,11 +183,11 @@ export default function NewProjectPage() {
           <label className="block text-xs font-medium text-zinc-500 mb-1.5">
             Project Name <span className="text-zinc-300">*</span>
           </label>
-          <input
-            type="text"
+          <AutoResizeTextarea
             value={form.name}
             onChange={(e) => updateForm("name", e.target.value)}
             placeholder="e.g. Infrastructure Development"
+            rows={1}
             className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-800 placeholder-zinc-300 focus:border-zinc-400 focus:outline-none transition-colors"
             required
           />
@@ -194,11 +225,11 @@ export default function NewProjectPage() {
             <label className="block text-xs font-medium text-zinc-500 mb-1.5">
               Client / Company
             </label>
-            <input
-              type="text"
+            <AutoResizeTextarea
               value={form.clientName}
               onChange={(e) => updateForm("clientName", e.target.value)}
               placeholder="e.g. Ministry of Works"
+              rows={1}
               className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-800 placeholder-zinc-300 focus:border-zinc-400 focus:outline-none transition-colors"
             />
           </div>
@@ -236,33 +267,22 @@ export default function NewProjectPage() {
             <label className="block text-xs font-medium text-zinc-500 mb-1.5">
               Status
             </label>
-            <select
+            <CustomSelect
+              options={STATUS_OPTIONS}
               value={form.status}
-              onChange={(e) => updateForm("status", e.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-800 focus:border-zinc-400 focus:outline-none transition-colors"
-            >
-              <option value="draft">Draft</option>
-              <option value="submitted">Submitted</option>
-              <option value="awarded">Awarded</option>
-              <option value="lost">Lost</option>
-            </select>
+              onChange={(val) => updateForm("status", val)}
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1.5">
               Category
             </label>
-            <select
+            <CustomSelect
+              options={CATEGORY_OPTIONS}
               value={form.category}
-              onChange={(e) => updateForm("category", e.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-800 focus:border-zinc-400 focus:outline-none transition-colors"
-            >
-              <option value="">Select category</option>
-              <option value="infrastructure">Infrastructure</option>
-              <option value="consultancy">Consultancy</option>
-              <option value="supply">Supply & Delivery</option>
-              <option value="services">Services</option>
-              <option value="other">Other</option>
-            </select>
+              onChange={(val) => updateForm("category", val)}
+              placeholder="Select category"
+            />
           </div>
         </div>
 
@@ -341,12 +361,12 @@ export default function NewProjectPage() {
           <label className="block text-xs font-medium text-zinc-500 mb-1.5">
             Submission Address
           </label>
-          <textarea
+          <AutoResizeTextarea
             value={form.submissionAddress}
             onChange={(e) => updateForm("submissionAddress", e.target.value)}
             placeholder="Full address for submission..."
-            rows={3}
-            className="w-full resize-none rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-800 placeholder-zinc-300 focus:border-zinc-400 focus:outline-none transition-colors"
+            rows={1}
+            className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-800 placeholder-zinc-300 focus:border-zinc-400 focus:outline-none transition-colors"
           />
         </div>
 
@@ -383,11 +403,11 @@ export default function NewProjectPage() {
             </p>
             {envelopes.map((env, i) => (
               <div key={i} className="flex items-center gap-2">
-                <input
-                  type="text"
+                <AutoResizeTextarea
                   value={env.title}
                   onChange={(e) => updateEnvelope(i, e.target.value)}
                   placeholder={`Envelope ${i + 1}: Introduction`}
+                  rows={1}
                   className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 placeholder-zinc-300 focus:border-zinc-400 focus:outline-none transition-colors"
                 />
                 <button
@@ -415,12 +435,12 @@ export default function NewProjectPage() {
           <label className="block text-xs font-medium text-zinc-500 mb-1.5">
             Description / Notes
           </label>
-          <textarea
+          <AutoResizeTextarea
             value={form.description}
             onChange={(e) => updateForm("description", e.target.value)}
             placeholder="Any additional notes about this project..."
-            rows={3}
-            className="w-full resize-none rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-800 placeholder-zinc-300 focus:border-zinc-400 focus:outline-none transition-colors"
+            rows={1}
+            className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-800 placeholder-zinc-300 focus:border-zinc-400 focus:outline-none transition-colors"
           />
         </div>
 

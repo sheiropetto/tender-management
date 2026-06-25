@@ -170,11 +170,25 @@ body {
 }
 
 @media print {
+  html, body, table, tr, td, th, h1, p, span, div {
+    font-family: Arial, Helvetica, sans-serif !important;
+    transition: none !important;
+    animation: none !important;
+    -webkit-font-smoothing: subpixel-antialiased !important;
+    -moz-osx-font-smoothing: auto !important;
+    text-rendering: optimizeLegibility !important;
+  }
   body { background: white !important; padding: 0 !important; margin: 0 !important; display: block !important; height: auto !important; }
   body > div { height: auto !important; }
   main { height: auto !important; }
   .no-print {
     display: none !important;
+  }
+  /* Disable all transitions, animations, and filters for high-quality vector print */
+  *, *::before, *::after {
+    backdrop-filter: none !important;
+    filter: none !important;
+    box-shadow: none !important;
   }
 }
 
@@ -332,9 +346,9 @@ body {
 }
 
 .toc-envelope {
-  font-size: 11pt;
-  font-weight: 500;
-  color: #555;
+  font-size: 14pt;
+  font-weight: 600;
+  color: #444;
   margin: 0;
 }
 
@@ -400,14 +414,16 @@ body {
 .toc-td-no { text-align: center; color: #666; }
 .toc-td-app { font-weight: 600; }
 .toc-td-title { }
-.toc-td-tag { text-align: center; }
+.toc-td-tag { text-align: center; vertical-align: middle; }
 
 .toc-tag-dot {
   display: inline-block;
-  width: 5mm;
-  height: 5mm;
-  border-radius: 50%;
-  border: 1px solid rgba(0,0,0,0.1);
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  border: 1px solid rgba(0,0,0,0.15);
+  vertical-align: middle;
+  box-sizing: border-box;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -428,10 +444,21 @@ body {
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
   .toc-frame {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+  }
+  
+  /* Force sharp black text for printing to avoid halftone dithering */
+  .toc-page * {
+    color: #000000 !important;
+  }
+  .toc-td-no {
+    color: #000000 !important;
+  }
+  .toc-ref, .toc-envelope {
+    color: #000000 !important;
   }
 }

@@ -86,7 +86,18 @@ export default function ProjectDetailPage() {
         <InfoRow label="Client Ref" value={project.clientRefNumber} />
         <InfoRow label="Client" value={project.clientName} />
         <InfoRow label="Category" value={project.category ? project.category.charAt(0).toUpperCase() + project.category.slice(1) : "—"} />
-        <InfoRow label="Submission Date" value={project.submissionDate} />
+        <InfoRow 
+          label="Submission Date" 
+          value={(() => {
+            if (!project.submissionDate || project.submissionDate === "—" || project.submissionDate === "-") return "—";
+            const match = project.submissionDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (match) {
+              const [, year, month, day] = match;
+              return `${day}/${month}/${year}`;
+            }
+            return project.submissionDate;
+          })()} 
+        />
         <InfoRow label="Submission Time" value={project.submissionTime} />
         <InfoRow label="Budget (RM)" value={project.budget} />
         <InfoRow label="Contact Name" value={project.contactPersonName} />

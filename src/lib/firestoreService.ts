@@ -34,6 +34,7 @@ export interface Project {
   description: string;
   hasEnvelopes: boolean;
   starred?: boolean;
+  archived?: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -163,6 +164,20 @@ export async function deleteProject(id: string) {
 export async function toggleProjectStar(id: string, starred: boolean) {
   await updateDoc(doc(db, "projects", id), {
     starred,
+    updatedAt: Timestamp.now(),
+  });
+}
+
+export async function archiveProject(id: string) {
+  await updateDoc(doc(db, "projects", id), {
+    archived: true,
+    updatedAt: Timestamp.now(),
+  });
+}
+
+export async function unarchiveProject(id: string) {
+  await updateDoc(doc(db, "projects", id), {
+    archived: false,
     updatedAt: Timestamp.now(),
   });
 }

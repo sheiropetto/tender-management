@@ -27,6 +27,16 @@ function formatTimeAgo(date: any): string {
   return date.toDate().toLocaleDateString();
 }
 
+function formatSubmissionDate(dateStr?: string): string {
+  if (!dateStr || dateStr === "—" || dateStr === "-") return "—";
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${day}/${month}/${year}`;
+  }
+  return dateStr;
+}
+
 export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,6 +145,9 @@ export default function Dashboard() {
                   <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400">
                     Client
                   </th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400">
+                    Submission Date
+                  </th>
                   <th className="px-5 py-3 text-right text-xs font-medium text-zinc-400">
                     Updated
                   </th>
@@ -170,6 +183,12 @@ export default function Dashboard() {
                       onClick={() => window.location.href = `/projects/${project.id}`}
                     >
                       {project.clientName || "—"}
+                    </td>
+                    <td
+                      className="px-5 py-4 text-sm text-zinc-500 cursor-pointer"
+                      onClick={() => window.location.href = `/projects/${project.id}`}
+                    >
+                      {formatSubmissionDate(project.submissionDate)}
                     </td>
                     <td
                       className="px-5 py-4 text-right cursor-pointer"
@@ -213,6 +232,9 @@ export default function Dashboard() {
                   <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400">
                     Client
                   </th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400">
+                    Submission Date
+                  </th>
                   <th className="px-5 py-3 text-right text-xs font-medium text-zinc-400">
                     Updated
                   </th>
@@ -246,6 +268,9 @@ export default function Dashboard() {
                     </td>
                     <td className="px-5 py-4 text-sm text-zinc-500">
                       {project.clientName || "—"}
+                    </td>
+                    <td className="px-5 py-4 text-sm text-zinc-500">
+                      {formatSubmissionDate(project.submissionDate)}
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex items-center justify-end gap-1.5 whitespace-nowrap text-sm text-zinc-400">

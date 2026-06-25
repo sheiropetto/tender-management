@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus, FileText, MoreHorizontal, Loader2, Clock, Pencil, Trash2, FileDown, Star } from "lucide-react";
+import { Plus, FileText, MoreHorizontal, Loader2, Clock, Pencil, Trash2, FileDown, Star, Archive } from "lucide-react";
 import Link from "next/link";
-import { getProjects, deleteProject, toggleProjectStar, type Project } from "@/lib/firestoreService";
+import { getProjects, deleteProject, toggleProjectStar, archiveProject, type Project } from "@/lib/firestoreService";
 import ConfirmModal from "@/components/ConfirmModal";
 
 function formatTimeAgo(date: any): string {
@@ -25,13 +25,29 @@ export default function ProjectsPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [archiveTarget, setArchiveTarget] = useState<Project | null>(null);
+  const [archiving, setArchiving] = useState(false);
 
   useEffect(() => {
     getProjects()
-      .then(setProjects)
+      .then((projs) => setProjects(projs.filter((p) => !p.archived)))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const handleArchive = async () => {
+    if (!archiveTarget?.id) return;
+    setArchiving(true);
+    try {
+      await archiveProject(archiveTarget.id);
+      setProjects((prev) => prev.filter((p) => p.id !== archiveTarget.id));
+      setArchiveTarget(null);
+    } catch (err) {
+      console.error("Failed to archive project:", err);
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -168,14 +184,14 @@ export default function ProjectsPage() {
                   <MoreHorizontal className="h-4 w-4 stroke-[1.5]" />
                 </button>
                 {openMenu === project.id && (
-                  <div className="absolute right-0 top-10 z-10 w-44 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
+                  <div className="absolute right-0 top-10 z-10 w-48 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setOpenMenu(null);
                         setTimeout(() => { window.location.href = `/projects/${project.id}/print`; }, 50);
                       }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+                      className="flex w-full items-center justify-start gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors text-left"
                     >
                       <FileDown className="h-4 w-4 stroke-[1.5]" />
                       Print Documents
@@ -186,10 +202,21 @@ export default function ProjectsPage() {
                         setOpenMenu(null);
                         setTimeout(() => { window.location.href = `/projects/${project.id}/edit`; }, 50);
                       }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+                      className="flex w-full items-center justify-start gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors text-left"
                     >
                       <Pencil className="h-4 w-4 stroke-[1.5]" />
                       Edit
+                    </button>
+                      <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenu(null);
+                        setArchiveTarget(project);
+                      }}
+                      className="flex w-full items-center justify-start gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors text-left"
+                    >
+                      <Archive className="h-4 w-4 stroke-[1.5]" />
+                      Archive
                     </button>
                     <button
                       onClick={(e) => {
@@ -197,7 +224,7 @@ export default function ProjectsPage() {
                         setOpenMenu(null);
                         setDeleteTarget(project);
                       }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="flex w-full items-center justify-start gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
                     >
                       <Trash2 className="h-4 w-4 stroke-[1.5]" />
                       Delete
@@ -219,6 +246,20 @@ export default function ProjectsPage() {
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
           loading={deleting}
+        />
+      )}
+
+      {/* Archive confirmation modal */}
+      {archiveTarget && (
+        <ConfirmModal
+          title="Archive Project"
+          message={`Are you sure you want to archive "${archiveTarget.name}"? You can restore it later from the Archive page.`}
+          confirmLabel="Archive"
+          loadingLabel="Archiving..."
+          confirmVariant="primary"
+          onConfirm={handleArchive}
+          onCancel={() => setArchiveTarget(null)}
+          loading={archiving}
         />
       )}
     </div>

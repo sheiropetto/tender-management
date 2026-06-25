@@ -5,6 +5,7 @@ import { Settings, Palette, Type, Database, Info, Trash2, Loader2, CheckCircle2 
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getSettings, updateSettings, type AppSettings } from "@/lib/firestoreService";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function SettingsPage() {
   const [clearing, setClearing] = useState(false);
@@ -14,6 +15,7 @@ export default function SettingsPage() {
   const [borderThickness, setBorderThickness] = useState("Thick (3px)");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const loaded = useRef(false);
 
   // Load settings on mount
@@ -46,8 +48,12 @@ export default function SettingsPage() {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [fontFamily, fontSize, borderThickness]);
 
-  const handleClearAll = async () => {
-    if (!confirm("Delete ALL data from Firestore? This cannot be undone.")) return;
+  const handleClearAll = () => {
+    setShowClearConfirm(true);
+  };
+
+  const performClearAll = async () => {
+    setShowClearConfirm(false);
     setClearing(true);
     setClearMsg("");
     try {
@@ -239,6 +245,16 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {showClearConfirm && (
+        <ConfirmModal
+          title="Delete All Data"
+          message="Are you sure you want to delete ALL projects and sections from Firestore? This action is permanent and cannot be undone."
+          confirmLabel="Delete All"
+          onConfirm={performClearAll}
+          onCancel={() => setShowClearConfirm(false)}
+        />
+      )}
     </div>
   );
 }

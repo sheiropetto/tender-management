@@ -151,7 +151,7 @@ export default function AIUpload({ onDataExtracted }: AIUploadProps) {
               <p className="text-sm text-zinc-500">
                 {isDragActive ? "Drop your file here" : "Drop PDF/DOCX here or click to browse"}
               </p>
-              <p className="text-xs text-zinc-300">Powered by DeepSeek AI</p>
+              <p className="text-xs text-zinc-300">Powered by Gemini AI</p>
             </div>
           </>
         )}
