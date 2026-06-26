@@ -40,7 +40,7 @@ export default function TOCPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [excludedRows, setExcludedRows] = useState<Set<string>>(new Set());
 
-  const [rowsPerPage, setRowsPerPage] = useState<number>(8);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [zoom, setZoom] = useState<number>(0.8);
 
   // Custom column titles
@@ -235,7 +235,9 @@ export default function TOCPage() {
                     {showTagColumn && (
                       <td className="toc-td toc-td-tag">
                         {row.tagColor && (
-                          <span className="toc-tag-dot" style={{ backgroundColor: row.tagColor }} />
+                          <div className="toc-tag-dot-wrap">
+                            <span className="toc-tag-dot" style={{ backgroundColor: row.tagColor }} />
+                          </div>
                         )}
                       </td>
                     )}

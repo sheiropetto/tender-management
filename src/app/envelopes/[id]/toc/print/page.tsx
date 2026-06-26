@@ -23,7 +23,7 @@ export default function TOCPrintPage() {
 
   // Settings from query params
   const borderPx = parseInt(searchParams.get("borderPx") || "3", 10);
-  const rowsPerPage = parseInt(searchParams.get("rowsPerPage") || "8", 10);
+  const rowsPerPage = parseInt(searchParams.get("rowsPerPage") || "10", 10);
   const density = (searchParams.get("density") || "medium") as 'compact' | 'medium' | 'cozy';
   const headerAlign = (searchParams.get("headerAlign") || "center") as 'left' | 'center' | 'right';
   
@@ -211,7 +211,9 @@ export default function TOCPrintPage() {
                     {showTagColumn && (
                       <td className="toc-td toc-td-tag">
                         {row.tagColor && (
-                          <span className="toc-tag-dot" style={{ backgroundColor: row.tagColor }} />
+                          <div className="toc-tag-dot-wrap">
+                            <span className="toc-tag-dot" style={{ backgroundColor: row.tagColor }} />
+                          </div>
                         )}
                       </td>
                     )}
