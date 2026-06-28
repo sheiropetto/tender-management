@@ -8,7 +8,7 @@ import {
   FolderKanban,
   Archive,
   Settings,
-  Star,
+  Files,
   ChevronDown,
   LogOut,
 } from "lucide-react";
@@ -103,7 +103,7 @@ export default function Sidebar() {
     <aside className="flex w-[248px] flex-col py-8 pl-5 pr-3 select-none overflow-y-auto">
       {/* Menu Header */}
       <div className="flex items-center gap-2 px-4 pb-7">
-        <Star className="h-3.5 w-3.5 text-zinc-400" />
+        <Files className="h-3.5 w-3.5 text-zinc-400" />
         <span className="text-[11px] font-medium text-zinc-400 tracking-wide">
           Menu
         </span>

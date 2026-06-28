@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { Loader2, LogIn, UserPlus, Star } from "lucide-react";
+import { Loader2, LogIn, UserPlus, Files } from "lucide-react";
 
 export default function LoginPage() {
   const { login, signup, loginWithGoogle } = useAuth();
@@ -57,7 +57,7 @@ export default function LoginPage() {
         {/* Logo / Brand */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600">
-            <Star className="h-6 w-6 stroke-[1.5]" />
+            <Files className="h-6 w-6 stroke-[1.5]" />
           </div>
           <h1 className="text-xl font-medium text-zinc-900">TenderDocs</h1>
           <p className="mt-1 text-sm text-zinc-400">
