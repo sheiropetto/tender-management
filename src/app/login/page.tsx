@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { Loader2, LogIn, UserPlus, Star } from "lucide-react";
 
 export default function LoginPage() {
-  const { login, signup, loginWithGoogle, authError } = useAuth();
+  const { login, signup, loginWithGoogle } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -99,8 +99,8 @@ export default function LoginPage() {
             />
           </div>
 
-          {(error || authError) && (
-            <p className="text-sm text-red-500 text-center">{error || authError}</p>
+          {error && (
+            <p className="text-sm text-red-500 text-center">{error}</p>
           )}
 
           <button

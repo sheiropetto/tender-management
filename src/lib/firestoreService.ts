@@ -209,7 +209,7 @@ export async function getSettings(): Promise<AppSettings> {
 }
 
 export async function updateSettings(data: AppSettings) {
-  await setDoc(doc(db, "settings", SETTINGS_ID), data as any, { merge: true });
+  await setDoc(doc(db, "settings", SETTINGS_ID), data, { merge: true });
 }
 
 // ─── Envelopes CRUD ──────────────────────────────────────────────────────

@@ -363,44 +363,7 @@ export default function SpreadsheetTable({
     onRowsChange(newRows);
   };
 
-  const handleGlobalKeyDown = useCallback((e: KeyboardEvent) => {
-    // Ctrl+F opens find bar
-    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-      e.preventDefault();
-      if (!showFind) {
-        openFind();
-      } else {
-        findInputRef.current?.focus();
-        findInputRef.current?.select();
-      }
-      return;
-    }
-    // If find bar is open, F3 / Shift+F3 for next/prev
-    if (showFind && e.key === 'F3') {
-      e.preventDefault();
-      if (e.shiftKey) goToPrevMatch();
-      else goToNextMatch();
-      return;
-    }
-    if (e.ctrlKey || e.metaKey) {
-      if (e.key === 'c') { copySelection(); e.preventDefault(); }
-      if (e.key === 'x') { cutSelection(); e.preventDefault(); }
-      if (e.key === 'v') {
-        // Native paste into focused textarea handles it via onPaste
-        return;
-      }
-    }
-    // Escape clears selection
-    if (e.key === 'Escape') {
-      setSelection(null);
-      selectAnchor.current = null;
-    }
-  }, [selection, columns, rows, showFind]);
 
-  useEffect(() => {
-    document.addEventListener('keydown', handleGlobalKeyDown);
-    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [handleGlobalKeyDown]);
 
   // Clear selection on mouseup anywhere
   useEffect(() => {
@@ -409,17 +372,7 @@ export default function SpreadsheetTable({
     return () => document.removeEventListener('mouseup', up);
   }, []);
 
-  // ─── Format cell value ────────────────────────────────────────────────
 
-  const formatCellValue = (val: string, col: ColumnDef): string => {
-    if (!val) return val;
-    if (col.type === 'number') {
-      const n = parseFloat(val.replace(/[^0-9.-]/g, ''));
-      return isNaN(n) ? val : n.toLocaleString();
-    }
-    // currency removed — use number type instead
-    return val;
-  };
 
   // ─── Drag-to-reorder rows ─────────────────────────────────────────────
 
@@ -658,6 +611,46 @@ export default function SpreadsheetTable({
     setCurrentMatch(0);
   };
 
+  const handleGlobalKeyDown = useCallback((e: KeyboardEvent) => {
+    // Ctrl+F opens find bar
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      if (!showFind) {
+        openFind();
+      } else {
+        findInputRef.current?.focus();
+        findInputRef.current?.select();
+      }
+      return;
+    }
+    // If find bar is open, F3 / Shift+F3 for next/prev
+    if (showFind && e.key === 'F3') {
+      e.preventDefault();
+      if (e.shiftKey) goToPrevMatch();
+      else goToNextMatch();
+      return;
+    }
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'c') { copySelection(); e.preventDefault(); }
+      if (e.key === 'x') { cutSelection(); e.preventDefault(); }
+      if (e.key === 'v') {
+        // Native paste into focused textarea handles it via onPaste
+        return;
+      }
+    }
+    // Escape clears selection
+    if (e.key === 'Escape') {
+      setSelection(null);
+      selectAnchor.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection, columns, rows, showFind, copySelection, cutSelection, goToNextMatch, goToPrevMatch, openFind]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [handleGlobalKeyDown]);
+
   return (
     <div className="overflow-x-auto overflow-y-auto max-h-[70vh] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 relative">
       {/* ─── Find & Replace bar ──────────────────────────────────────── */}
@@ -670,7 +663,10 @@ export default function SpreadsheetTable({
             value={findText}
             onChange={(e) => { setFindText(e.target.value); setCurrentMatch(0); }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') { e.shiftKey ? goToPrevMatch() : goToNextMatch(); }
+              if (e.key === 'Enter') {
+                if (e.shiftKey) goToPrevMatch();
+                else goToNextMatch();
+              }
               if (e.key === 'Escape') closeFind();
             }}
             placeholder="Find in sheet..."
