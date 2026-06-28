@@ -23,6 +23,8 @@ import { useRouter, usePathname } from "next/navigation";
 
 const auth = getAuth(app);
 
+const PUBLIC_ROUTES = ["/login"];
+
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
@@ -35,12 +37,11 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const PUBLIC_ROUTES = ["/login"];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -49,11 +50,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(firebaseUser);
       setLoading(false);
       if (!firebaseUser && !PUBLIC_ROUTES.includes(pathname)) {
+        setRedirecting(true);
         router.push("/login");
       }
     });
     return unsubscribe;
   }, [pathname, router]);
+
+  // Don't render children on protected routes until auth is confirmed
+  const isProtected = !PUBLIC_ROUTES.includes(pathname);
+  if (loading || redirecting || (isProtected && !user)) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-zinc-100 dark:bg-zinc-900">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
+          <span className="text-sm text-zinc-400">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   const login = useCallback(async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
@@ -72,17 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await signOut(auth);
   }, []);
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-zinc-100 dark:bg-zinc-900">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
-          <span className="text-sm text-zinc-400">Loading...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, logout, authError }}>
