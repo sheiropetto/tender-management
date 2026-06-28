@@ -6,8 +6,10 @@ import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getSettings, updateSettings, type AppSettings } from "@/lib/firestoreService";
 import ConfirmModal from "@/components/ConfirmModal";
+import { useAuth } from "@/lib/auth";
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const [clearing, setClearing] = useState(false);
   const [clearMsg, setClearMsg] = useState("");
   const [fontFamily, setFontFamily] = useState("Arial");
@@ -47,6 +49,20 @@ export default function SettingsPage() {
     }, 1000);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [fontFamily, fontSize, borderThickness]);
+
+  if (!user || user.email !== "hafizuddin.abuhasan@gmail.com") {
+    return (
+      <div className="p-8 flex flex-col items-center justify-center h-full">
+        <div className="max-w-md text-center p-6 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+          <Settings className="mx-auto h-12 w-12 text-zinc-400 mb-4 stroke-[1.5]" />
+          <h1 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Access Denied</h1>
+          <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">
+            You do not have permission to view or manage these settings. Please contact the administrator if you believe this is an error.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleClearAll = () => {
     setShowClearConfirm(true);

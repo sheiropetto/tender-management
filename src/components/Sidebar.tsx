@@ -24,7 +24,7 @@ interface ChildNode {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [envelopesMap, setEnvelopesMap] = useState<Record<string, Envelope[]>>({});
   const [loading, setLoading] = useState(true);
@@ -269,17 +269,19 @@ export default function Sidebar() {
         </Link>
 
         {/* Settings */}
-        <Link
-          href="/settings"
-          className={`flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-all duration-150 ${
-            pathname === "/settings" 
-              ? "text-zinc-900 dark:text-zinc-100 bg-zinc-200/50 dark:bg-zinc-700/50" 
-              : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
-          }`}
-        >
-          <Settings className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.5]" />
-          <span>Settings</span>
-        </Link>
+        {user?.email === "hafizuddin.abuhasan@gmail.com" && (
+          <Link
+            href="/settings"
+            className={`flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition-all duration-150 ${
+              pathname === "/settings" 
+                ? "text-zinc-900 dark:text-zinc-100 bg-zinc-200/50 dark:bg-zinc-700/50" 
+                : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+            }`}
+          >
+            <Settings className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.5]" />
+            <span>Settings</span>
+          </Link>
+        )}
       </nav>
 
       {/* Dark mode toggle */}
