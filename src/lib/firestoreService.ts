@@ -9,6 +9,7 @@ import {
   deleteDoc,
   setDoc,
   query,
+  where,
   orderBy,
   Timestamp,
 } from "firebase/firestore";
@@ -158,6 +159,13 @@ export async function updateProject(
 }
 
 export async function deleteProject(id: string) {
+  // Cascade delete: remove all envelopes belonging to this project
+  const envelopesSnap = await getDocs(
+    query(collection(db, "envelopes"), where("projectId", "==", id))
+  );
+  await Promise.all(
+    envelopesSnap.docs.map((d) => deleteDoc(doc(db, "envelopes", d.id)))
+  );
   await deleteDoc(doc(db, "projects", id));
 }
 
@@ -207,11 +215,14 @@ export async function updateSettings(data: AppSettings) {
 // ─── Envelopes CRUD ──────────────────────────────────────────────────────
 
 export async function getEnvelopes(projectId: string): Promise<Envelope[]> {
-  const q = query(collection(db, "envelopes"), orderBy("sortOrder", "asc"));
+  const q = query(
+    collection(db, "envelopes"),
+    where("projectId", "==", projectId)
+  );
   const snapshot = await getDocs(q);
-  return snapshot.docs
-    .map((d) => ({ id: d.id, ...d.data() } as Envelope))
-    .filter((e) => e.projectId === projectId);
+  const envelopes = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Envelope));
+  // Sort in-memory to avoid requiring a composite Firestore index
+  return envelopes.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 }
 
 export async function deleteEnvelope(id: string) {

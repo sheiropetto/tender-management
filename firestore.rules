@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if the requester is authenticated
+    function isAuth() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // Settings: any authenticated user can read/write
+    match /settings/{doc} {
+      allow read, write: if isAuth();
+    }
+
+    // Projects: authenticated users can CRUD
+    match /projects/{projectId} {
+      allow read, write, delete: if isAuth();
+
+      // Subcollections under projects (if any)
+      match /{document=**} {
+        allow read, write: if isAuth();
+      }
+    }
+
+    // Envelopes: authenticated users can CRUD
+    match /envelopes/{envelopeId} {
+      allow read, write, delete: if isAuth();
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

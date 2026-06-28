@@ -10,7 +10,9 @@ import {
   Settings,
   Star,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 import { getProjects, getEnvelopes, type Project, type Envelope } from "@/lib/firestoreService";
 
 interface ChildNode {
@@ -22,6 +24,7 @@ interface ChildNode {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { logout } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [envelopesMap, setEnvelopesMap] = useState<Record<string, Envelope[]>>({});
   const [loading, setLoading] = useState(true);
@@ -296,6 +299,15 @@ export default function Sidebar() {
           </span>
           <span className="dark:hidden">Dark Mode</span>
           <span className="hidden dark:inline">Light Mode</span>
+        </button>
+
+        {/* Log out */}
+        <button
+          onClick={logout}
+          className="flex items-center gap-3 rounded-full px-4 py-3 w-full text-sm font-medium text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400 transition-colors"
+        >
+          <LogOut className="h-[18px] w-[18px] stroke-[1.5]" />
+          <span>Log out</span>
         </button>
       </div>
     </aside>

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash2, Save, Loader2, Sparkles } from "lucide-react";
 import { getProject, getEnvelopes, updateProject } from "@/lib/firestoreService";
-import { collection, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, doc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AIUpload from "@/components/AIUpload";
 import CustomSelect, { type SelectOption } from "@/components/CustomSelect";
@@ -159,7 +159,7 @@ export default function EditProjectPage() {
               projectId,
               title: env.title,
               sortOrder: i,
-              createdAt: new Date(),
+              createdAt: Timestamp.now(),
             });
           }
         })

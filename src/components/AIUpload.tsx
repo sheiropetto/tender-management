@@ -192,11 +192,10 @@ async function extractTextFromFile(file: File): Promise<string> {
   }
 
   if (ext === "docx") {
-    // For DOCX, read as text to get basic content
-    // For full DOCX support, consider using mammoth.js
-    const text = await file.text();
-    // Remove XML tags to get rough text content
-    return text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const mammoth = await import("mammoth");
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return result.value.trim();
   }
 
   throw new Error("Unsupported file format. Please use PDF, DOCX, or TXT.");

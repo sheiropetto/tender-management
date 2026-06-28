@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import SidebarWithKey from "@/components/SidebarWithKey";
+import AppShell from "@/components/AppShell";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -32,12 +32,9 @@ export default function RootLayout({
         }} />
       </head>
       <body className="h-full flex items-center justify-center p-6 dark:bg-zinc-900 transition-colors">
-        <div className="flex h-full w-full max-w-[1440px] rounded-[32px] bg-zinc-100 dark:bg-zinc-800 overflow-hidden transition-colors">
-          <SidebarWithKey />
-          <main className="flex-1 overflow-y-auto bg-zinc-100 dark:bg-zinc-800 transition-colors">
-            {children}
-          </main>
-        </div>
+        <AppShell>
+          {children}
+        </AppShell>
       </body>
     </html>
   );
